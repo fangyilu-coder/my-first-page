@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校慶園遊會班會企劃與營運共編平台 | Fair PLC Planner</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js for exporting PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .tab-active { @apply border-indigo-600 text-indigo-600 bg-indigo-50/60 font-semibold; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Logo & Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                        <i class="fa-solid fa-store text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-slate-900 text-lg leading-snug flex items-center gap-2">
+                            <span data-zh="校慶園遊會班會企劃共編平台" data-en="School Fair PLC Co-Planning Platform">校慶園遊會班會企劃共編平台</span>
+                            <span class="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-medium" data-zh="SDG 12 永續" data-en="SDG 12 Sustainable">SDG 12 永續</span>
+                        </h1>
+                        <p class="text-xs text-slate-500" data-zh="食品與遊戲類攤位 · 分年段學習與營運演練" data-en="Food & Game Stalls · Grade-Differentiated Planning">食品與遊戲類攤位 · 分年段學習與營運演練</p>
+                    </div>
+                </div>
+
+                <!-- Top Right Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- Grade Level Selector -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+                        <label for="grade-select" class="text-xs text-slate-500 font-medium px-2 hidden sm:inline" data-zh="年段:" data-en="Grade:">年段:</label>
+                        <select id="grade-select" onchange="switchGrade(this.value)" class="bg-white text-xs font-semibold text-indigo-900 border-none rounded-md px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 shadow-sm cursor-pointer">
+                            <option value="G7_G8">G7 / G8 (基礎分工與衛生習慣)</option>
+                            <option value="G10">G10 (自主規劃與成本效益)</option>
+                            <option value="G11">G11 (團隊領導與跨班協作)</option>
+                        </select>
+                    </div>
+
+                    <!-- Language Switcher Button -->
+                    <button onclick="toggleLanguage()" class="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold transition">
+                        <i class="fa-solid fa-globe text-indigo-600"></i>
+                        <span id="lang-btn-text">English</span>
+                    </button>
+
+                    <!-- PDF Export Action -->
+                    <button onclick="exportToPDF()" class="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg font-medium text-xs shadow-md shadow-indigo-100 transition active:scale-95">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span data-zh="匯出 PDF" data-en="Export PDF">匯出 PDF</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade Specific Header Banner -->
+        <div id="grade-banner" class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white px-4 py-2.5 shadow-inner transition-all">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between text-xs gap-2">
+                <div class="flex items-center space-x-2">
+                    <span id="grade-badge" class="px-2 py-0.5 bg-indigo-500 text-white rounded font-bold uppercase tracking-wider text-[10px]">G7/G8</span>
+                    <span id="grade-title" class="font-semibold text-indigo-100">學習重點：基本分工、衛生習慣與服務禮貌</span>
+                </div>
+                <div class="flex items-center space-x-4 text-indigo-200">
+                    <span><i class="fa-solid fa-user-tie mr-1 text-indigo-400"></i><strong data-zh="導師帶領:" data-en="Guidance:">導師帶領:</strong> <span id="grade-guidance">具體情境、任務卡及示範帶領</span></span>
+                    <span><i class="fa-solid fa-award mr-1 text-emerald-400"></i><strong data-zh="預期成果:" data-en="Outcome:">預期成果:</strong> <span id="grade-outcome">能完成任務並說明操作步驟</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-white border-t border-slate-200 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-4 overflow-x-auto hide-scrollbar py-1">
+                <button onclick="switchTab('goals')" id="tab-btn-goals" class="tab-btn tab-active px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap transition flex items-center space-x-2">
+                    <i class="fa-solid fa-bullseye"></i>
+                    <span data-zh="1. 目標共識與分工" data-en="1. Goals & Work Division">1. 目標共識與分工</span>
+                </button>
+                <button onclick="switchTab('trials')" id="tab-btn-trials" class="tab-btn px-3 py-2 text-xs font-medium rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-slate-50 whitespace-nowrap transition flex items-center space-x-2">
+                    <i class="fa-solid fa-flask"></i>
+                    <span data-zh="2. 試作試玩與修正" data-en="2. Trial Runs & Revisions">2. 試作試玩與修正</span>
+                </button>
+                <button onclick="switchTab('ingredients')" id="tab-btn-ingredients" class="tab-btn px-3 py-2 text-xs font-medium rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-slate-50 whitespace-nowrap transition flex items-center space-x-2">
+                    <i class="fa-solid fa-carrot"></i>
+                    <span data-zh="3. 食材來源與安全" data-en="3. Food Sources & Safety">3. 食材來源與安全</span>
+                </button>
+                <button onclick="switchTab('sdg')" id="tab-btn-sdg" class="tab-btn px-3 py-2 text-xs font-medium rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-slate-50 whitespace-nowrap transition flex items-center space-x-2">
+                    <i class="fa-solid fa-recycle text-emerald-600"></i>
+                    <span data-zh="4. SDG12永續與演練" data-en="4. SDG12 & Rehearsal">4. SDG12永續與演練</span>
+                </button>
+                <button onclick="switchTab('reflection')" id="tab-btn-reflection" class="tab-btn px-3 py-2 text-xs font-medium rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-slate-50 whitespace-nowrap transition flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span data-zh="5. 結算與成果反思" data-en="5. Settlement & Reflection">5. 結算與成果反思</span>
+                </button>
+                <button onclick="switchTab('preview')" id="tab-btn-preview" class="tab-btn px-3 py-2 text-xs font-medium rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-slate-50 whitespace-nowrap transition flex items-center space-x-2">
+                    <i class="fa-solid fa-file-invoice"></i>
+                    <span data-zh="6. 企劃總覽與預覽" data-en="6. Summary & PDF Preview">6. 企劃總覽與預覽</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- TAB 1: Goals & Work Division -->
+        <section id="tab-goals" class="tab-content space-y-6">
+            <!-- Basic Class Info & Signatures Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-id-card text-indigo-600"></i>
+                    <span data-zh="班級基本資訊與專案簽認" data-en="Class Information & Signatures">班級基本資訊與專案簽認</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1" data-zh="班級名稱" data-en="Class Name">班級名稱</label>
+                        <input type="text" id="info-class-name" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="例如：801 班 / 高一1班">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1" data-zh="負責同學 / 總召簽名" data-en="Responsible Student Signature">負責同學 / 總召簽名</label>
+                        <input type="text" id="info-student-sig" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="例如：張小明 (班長/總召)">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1" data-zh="指導導師簽名" data-en="Advisor / Teacher Signature">指導導師簽名</label>
+                        <input type="text" id="info-teacher-sig" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="例如：王大衛 老師">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agenda Timeline Overview -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-check text-indigo-600"></i>
+                        <span data-zh="第一次班會：目標共識與經驗傳承 (建議45分鐘)" data-en="Meeting 1: Consensus & Experience Sharing (45 mins)">第一次班會：目標共識與經驗傳承 (建議45分鐘)</span>
+                    </h2>
+                    <span class="text-xs bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full font-medium" id="meeting1-agenda-tag">G7/G8 專屬流程</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs" id="meeting1-agenda-steps">
+                    <!-- Dynamic agenda cards injected via JS -->
+                </div>
+            </div>
+
+            <!-- Class 3 Goals Input -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-flag text-amber-500"></i>
+                    <span data-zh="班級三大核心目標 (Class Core Goals)" data-en="Class Three Core Goals">班級三大核心目標 (Class Core Goals)</span>
+                </h2>
+                <p class="text-xs text-slate-500 mb-4" data-zh="請與全班共同討論並輸入本次園遊會希望達成的學習、服務與環保目標。" data-en="Discuss with your class and define your learning, service, and environmental goals.">請與全班共同討論並輸入本次園遊會希望達成的學習、服務與環保目標。</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 space-y-2">
+                        <label class="block text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-graduation-cap text-indigo-600"></i>
+                            <span data-zh="1. 學習與品質目標" data-en="1. Learning & Quality Goal">1. 學習與品質目標</span>
+                        </label>
+                        <textarea id="goal-learning" rows="3" class="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="例如：掌握食品出餐流程，試作品質合格率達90%以上..."></textarea>
+                    </div>
+                    <div class="bg-emerald-50/50 p-4 rounded-lg border border-emerald-100 space-y-2">
+                        <label class="block text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-hand-holding-heart text-emerald-600"></i>
+                            <span data-zh="2. 服務與營運目標" data-en="2. Service & Operational Goal">2. 服務與營運目標</span>
+                        </label>
+                        <textarea id="goal-service" rows="3" class="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500" placeholder="例如：提供親切服務，排隊等待時間不超過5分鐘，順利營運..."></textarea>
+                    </div>
+                    <div class="bg-teal-50/50 p-4 rounded-lg border border-teal-100 space-y-2">
+                        <label class="block text-xs font-bold text-teal-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-leaf text-teal-600"></i>
+                            <span data-zh="3. 環保與 SDG 12 目標" data-en="3. Environmental & SDG 12 Goal">3. 環保與 SDG 12 目標</span>
+                        </label>
+                        <textarea id="goal-eco" rows="3" class="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-md focus:ring-2 focus:ring-teal-500" placeholder="例如：全面借用循環餐具，廚餘減量50%，道具回收再利用..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Work Division Table with Revision Field -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-indigo-600"></i>
+                            <span data-zh="班級人力分工表與修正調整紀錄" data-en="Work Division & Revision Log">班級人力分工表與修正調整紀錄</span>
+                        </h2>
+                        <p class="text-xs text-slate-500" data-zh="確認採購、製作、服務、收款、食安及環保人員，並於演練後進行調整。" data-en="Assign roles and document any revisions or adjustments after rehearsal.">確認採購、製作、服務、收款、食安及環保人員，並於演練後進行調整。</p>
+                    </div>
+                    <button onclick="addDivisionRow()" class="self-start sm:self-auto bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus text-indigo-600"></i>
+                        <span data-zh="新增分工項目" data-en="Add Duty Item">新增分工項目</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold">
+                                <th class="p-2.5 w-32" data-zh="工作類別" data-en="Category">工作類別</th>
+                                <th class="p-2.5" data-zh="主要職責與任務說明" data-en="Responsibilities">主要職責與任務說明</th>
+                                <th class="p-2.5 w-40" data-zh="負責學生 / 輪班" data-en="Assigned Students">負責學生 / 輪班</th>
+                                <th class="p-2.5 w-48 bg-amber-50/80 text-amber-900 border-l border-amber-200" data-zh="修正與調整紀錄 (體驗後)" data-en="Revisions & Adjustments">修正與調整紀錄 (體驗後)</th>
+                                <th class="p-2.5 w-12 text-center" data-zh="操作" data-en="Action">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="division-tbody" class="divide-y divide-slate-200">
+                            <!-- Rows loaded dynamic JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: Trial Runs & Photo Uploads -->
+        <section id="tab-trials" class="tab-content hidden space-y-6">
+            <!-- Agenda Meeting 2 -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-utensils text-indigo-600"></i>
+                        <span data-zh="第二次班會：試作檢討與安全流程 (建議45分鐘)" data-en="Meeting 2: Trial Review & Safety Protocol">第二次班會：試作檢討與安全流程 (建議45分鐘)</span>
+                    </h2>
+                    <span class="text-xs bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full font-medium" id="meeting2-agenda-tag">G7/G8 專屬流程</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs" id="meeting2-agenda-steps">
+                    <!-- Dynamic step list -->
+                </div>
+            </div>
+
+            <!-- Trial Run Interactive Card & Photo Upload Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-camera-retro text-indigo-600"></i>
+                            <span data-zh="食品試作 / 遊戲試玩紀錄與照片上傳" data-en="Trial Run Log & Photo Uploads">食品試作 / 遊戲試玩紀錄與照片上傳</span>
+                        </h2>
+                        <p class="text-xs text-slate-500" data-zh="每個品項需記錄製作時間、中心溫度、耗損及照片，並說明檢討修正。" data-en="Document cook time, center temperature, issues, and photos for each food or game item.">每個品項需記錄製作時間、中心溫度、耗損及照片，並說明檢討修正。</p>
+                    </div>
+                    <button onclick="addTrialCard()" class="self-start sm:self-auto bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i>
+                        <span data-zh="新增試作紀錄項" data-en="Add Trial Item">新增試作紀錄項</span>
+                    </button>
+                </div>
+
+                <!-- Trial Run Cards Container -->
+                <div id="trial-cards-container" class="space-y-4">
+                    <!-- Dynamic trial cards injected -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: Ingredient Sources & Safety -->
+        <section id="tab-ingredients" class="tab-content hidden space-y-6">
+            <!-- Fast Photo Receipt Upload Note -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-amber-900">
+                <div class="flex items-start gap-2.5">
+                    <i class="fa-solid fa-bolt text-amber-600 text-base mt-0.5"></i>
+                    <div>
+                        <strong data-zh="食材來源快速照片上傳 (簡化多次輸入流程)" data-en="Fast Photo Upload for Ingredient Sources">食材來源快速照片上傳 (簡化多次輸入流程)</strong>
+                        <p class="text-amber-700 mt-0.5" data-zh="學生可直接拍攝或上傳食材包裝袋、標籤或發票憑證，免去手動輸入繁瑣成分細節！" data-en="Upload photos of ingredient packages, labels, or receipts to bypass tedious manual entry!">學生可直接拍攝或上傳食材包裝袋、標籤或發票憑證，免去手動輸入繁瑣成分細節！</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ingredients Source Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-indigo-600"></i>
+                            <span data-zh="食材來源紀錄表 (Ingredient Source Log)" data-en="Ingredient Source Log">食材來源紀錄表 (Ingredient Source Log)</span>
+                        </h2>
+                        <p class="text-xs text-slate-500" data-zh="包含原產地、過敏原資訊及包裝/憑證照片上傳。" data-en="Include origin, allergen info, and upload package photos/receipts.">包含原產地、過敏原資訊及包裝/憑證照片上傳。</p>
+                    </div>
+                    <button onclick="addIngredientRow()" class="self-start sm:self-auto bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus text-indigo-600"></i>
+                        <span data-zh="新增食材項目" data-en="Add Ingredient">新增食材項目</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold">
+                                <th class="p-2.5 w-28" data-zh="品項名稱" data-en="Item Name">品項名稱</th>
+                                <th class="p-2.5 w-32" data-zh="原料 / 品牌" data-en="Raw Material / Brand">原料 / 品牌</th>
+                                <th class="p-2.5 w-24" data-zh="原產地" data-en="Origin">原產地</th>
+                                <th class="p-2.5 w-32" data-zh="供應商 / 購買處" data-en="Supplier">供應商 / 購買處</th>
+                                <th class="p-2.5 w-28" data-zh="保存方式" data-en="Storage">保存方式</th>
+                                <th class="p-2.5 w-32" data-zh="過敏原資訊" data-en="Allergens">過敏原資訊</th>
+                                <th class="p-2.5 w-48 bg-indigo-50/70 text-indigo-900 border-l border-indigo-100" data-zh="照片憑證 (可取代打字)" data-en="Photo Proof / Label">照片憑證 (可取代打字)</th>
+                                <th class="p-2.5 w-12 text-center" data-zh="操作" data-en="Action">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ingredients-tbody" class="divide-y divide-slate-200">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Food Safety Emergency Protocol -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+                    <span data-zh="食安異常暫停與復業處置 SOP (Pause & Resume Protocol)" data-en="Food Safety Pause & Resume SOP">食安異常暫停與復業處置 SOP (Pause & Resume Protocol)</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div class="bg-rose-50/60 p-4 rounded-lg border border-rose-200 space-y-2">
+                        <span class="font-bold text-rose-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-hand text-rose-600"></i>
+                            <span data-zh="發現異常時執行步驟" data-en="Steps When Abnormality Found">發現異常時執行步驟</span>
+                        </span>
+                        <p class="text-slate-700 leading-relaxed" data-zh="發現異常 ➔ 停止相關品項販售 ➔ 隔離該批食品 ➔ 通知導師與食安人員 ➔ 判定處理方式 ➔ 複查通過 ➔ 紀錄復業時間" data-en="Find Anomaly ➔ Pause Sales ➔ Isolate Batch ➔ Notify Advisor/Safety Officer ➔ Determine Solution ➔ Re-verify ➔ Log Resume Time">發現異常 ➔ 停止相關品項販售 ➔ 隔離該批食品 ➔ 通知導師與食安人員 ➔ 判定處理方式 ➔ 複查通過 ➔ 紀錄復業時間</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
+                        <span class="font-bold text-slate-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bullhorn text-indigo-600"></i>
+                            <span data-zh="攤位告示範例文字 (可複製使用)" data-en="Stall Notice Example Text">攤位告示範例文字 (可複製使用)</span>
+                        </span>
+                        <blockquote class="bg-white p-2.5 rounded border border-slate-200 italic text-slate-600" data-zh="「本品項正在進行製作與品質確認，暫停供應；完成確認後恢復。已付款顧客可選擇等候或退款。」" data-en="“This item is currently undergoing quality and safety verification and is temporarily paused. Service will resume shortly. Paid customers may wait or request a refund.”">
+                            「本品項正在進行製作與品質確認，暫停供應；完成確認後恢復。已付款顧客可選擇等候或退款。」
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: SDG12 Sustainability & Rehearsal -->
+        <section id="tab-sdg" class="tab-content hidden space-y-6">
+            <!-- Agenda Meeting 3 -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i>
+                        <span data-zh="第三次班會：營運演練與永續承諾 (建議45分鐘)" data-en="Meeting 3: Rehearsal & SDG Commitment">第三次班會：營運演練與永續承諾 (建議45分鐘)</span>
+                    </h2>
+                    <span class="text-xs bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full font-medium" id="meeting3-agenda-tag">G7/G8 專屬流程</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs" id="meeting3-agenda-steps">
+                    <!-- Dynamic step list -->
+                </div>
+            </div>
+
+            <!-- SDG 12 Action Plan with Photo Uploads -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-leaf text-emerald-600"></i>
+                        <span data-zh="SDG 12 責任消費與生產：班級減廢與環保行動" data-en="SDG 12 Eco Actions & Reusable Tableware">SDG 12 責任消費與生產：班級減廢與環保行動</span>
+                    </h2>
+                    <p class="text-xs text-slate-500" data-zh="聚焦減少食物浪費、推廣免費循環餐具與道具再利用。" data-en="Focus on reducing food waste, promoting reusable tableware, and material reuse.">聚焦減少食物浪費、推廣免費循環餐具與道具再利用。</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Food Waste Action -->
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                <i class="fa-solid fa-bowl-food text-amber-600"></i>
+                                <span data-zh="1. 減少剩食 (SDG 12.3)" data-en="1. Reduce Food Waste (SDG 12.3)">1. 減少剩食 (SDG 12.3)</span>
+                            </span>
+                            <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium" data-zh="小批補貨" data-en="Batch Prep">小批補貨</span>
+                        </div>
+                        <textarea id="sdg-food-waste" rows="2" class="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-md" placeholder="請填寫具體措施（例如：依試作產能動態預估需求，採小批次烹調備料...）"></textarea>
+                    </div>
+
+                    <!-- Circular Tableware -->
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                <i class="fa-solid fa-wine-glass text-emerald-600"></i>
+                                <span data-zh="2. 免費循環餐具推廣" data-en="2. Free Reusable Tableware">2. 免費循環餐具推廣</span>
+                            </span>
+                            <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium" data-zh="循環歸還" data-en="Circular Return">循環歸還</span>
+                        </div>
+                        <textarea id="sdg-tableware" rows="2" class="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-md" placeholder="請填寫具體措施（例如：全面鼓勵借用學校循環餐具，歸還可獲得循環集章...）"></textarea>
+                    </div>
+                </div>
+
+                <!-- Rehearsal Photo Field -->
+                <div class="bg-indigo-50/40 p-4 rounded-lg border border-indigo-100 space-y-3">
+                    <span class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-camera text-indigo-600"></i>
+                        <span data-zh="營運演練與環保道具照片紀錄" data-en="Operation Rehearsal & Eco Decor Photos">營運演練與環保道具照片紀錄</span>
+                    </span>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-1">
+                            <div id="rehearsal-photo-preview" class="w-full h-32 bg-white border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 p-2 text-center cursor-pointer hover:border-indigo-500 transition" onclick="document.getElementById('rehearsal-photo-input').click()">
+                                <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1 text-slate-300"></i>
+                                <span class="text-[11px]" data-zh="點擊上傳演練/環保照片" data-en="Click to upload rehearsal photo">點擊上傳演練/環保照片</span>
+                            </div>
+                            <input type="file" id="rehearsal-photo-input" class="hidden" accept="image/*" onchange="handleImageUpload(event, 'rehearsal-photo-preview', 'rehearsal-photo-data')">
+                            <input type="hidden" id="rehearsal-photo-data">
+                        </div>
+                        <div class="md:col-span-2">
+                            <textarea id="rehearsal-photo-desc" rows="4" class="w-full h-full text-xs p-2.5 bg-white border border-slate-200 rounded-md" placeholder="照片說明：例如模擬顧客排隊點餐交接流程、環保回收站設置、循環道具製作畫面..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: Settlement & Reflection -->
+        <section id="tab-reflection" class="tab-content hidden space-y-6">
+            <!-- Financial & Resource Settlement -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-calculator text-indigo-600"></i>
+                    <span data-zh="活動後收支結算與物資清算" data-en="Post-Event Financial & Resource Settlement">活動後收支結算與物資清算</span>
+                </h2>
+
+                <!-- Financial Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-1">
+                        <label class="block text-slate-600 font-medium" data-zh="總營業收入 (Total Revenue NT$)" data-en="Total Revenue ($)">總營業收入 (Revenue)</label>
+                        <input type="number" id="settle-revenue" oninput="calcNetProfit()" class="w-full text-base font-bold text-emerald-700 bg-white border border-slate-200 rounded px-2.5 py-1.5" placeholder="0">
+                    </div>
+                    <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-1">
+                        <label class="block text-slate-600 font-medium" data-zh="總採購成本 (Total Expenses NT$)" data-en="Total Expenses ($)">總採購成本 (Expenses)</label>
+                        <input type="number" id="settle-expenses" oninput="calcNetProfit()" class="w-full text-base font-bold text-rose-700 bg-white border border-slate-200 rounded px-2.5 py-1.5" placeholder="0">
+                    </div>
+                    <div class="bg-indigo-50 p-3.5 rounded-lg border border-indigo-200 space-y-1">
+                        <label class="block text-indigo-900 font-bold" data-zh="淨盈餘 / 虧損 (Net Profit/Loss)" data-en="Net Profit/Loss">淨盈餘 / 虧損 (Net Profit)</label>
+                        <div id="settle-net" class="text-base font-black text-indigo-700 py-1.5">NT$ 0</div>
+                    </div>
+                </div>
+
+                <!-- Waste & Leftover Quantities -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-2">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1" data-zh="剩食數量與處理方式" data-en="Leftover Food & Handling">剩食數量與處理方式</label>
+                        <textarea id="settle-leftover" rows="3" class="w-full p-2.5 border border-slate-200 rounded-md" placeholder="例如：僅剩餘香腸3份，已由工作人員現場自費購買享用，達成零剩食..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1" data-zh="垃圾與廚餘重量統計" data-en="Waste & Compost Quantity">垃圾與廚餘重量統計</label>
+                        <textarea id="settle-waste" rows="3" class="w-full p-2.5 border border-slate-200 rounded-md" placeholder="例如：一般垃圾1.2kg、廚餘0.5kg、可回收資源物3.5kg..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1" data-zh="可再用物資傳承清單" data-en="Reusable Materials for Pass-Down">可再用物資傳承清單</label>
+                        <textarea id="settle-reusable" rows="3" class="w-full p-2.5 border border-slate-200 rounded-md" placeholder="例如：攤位招牌底板2塊、收納箱3個、遊戲九宮格道具，保存留給學弟妹..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Reflection -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-heart-pulse text-indigo-600"></i>
+                    <span data-zh="學生反思與學長姊經驗傳承 (Reflection & Pass-Down)" data-en="Student Reflection & Pass-Down">學生反思與學長姊經驗傳承 (Reflection & Pass-Down)</span>
+                </h2>
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1" data-zh="1. 團隊合作與服務學習收穫 (Learning Experiences)" data-en="1. Teamwork & Service Learnings">1. 團隊合作與服務學習收穫 (Learning Experiences)</label>
+                        <textarea id="reflect-teamwork" rows="3" class="w-full p-2.5 border border-slate-200 rounded-md" placeholder="請寫下在此次企劃、試作與當天營運中，自己在合作溝通與服務顧客上的最大收穫..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1" data-zh="2. 給下一屆學弟妹的建議與成功秘訣 (Advice for Juniors)" data-en="2. Recommendations for Next Year">2. 給下一屆學弟妹的建議與成功秘訣 (Advice for Juniors)</label>
+                        <textarea id="reflect-juniors" rows="3" class="w-full p-2.5 border border-slate-200 rounded-md" placeholder="例如：高峰期補貨要提前15分鐘準備；標籤標示一定要清楚..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 6: PDF Preview -->
+        <section id="tab-preview" class="tab-content hidden space-y-6">
+            <div class="flex justify-between items-center bg-indigo-50 border border-indigo-200 p-4 rounded-xl">
+                <div>
+                    <h3 class="font-bold text-indigo-900 text-sm" data-zh="企劃與營運完整成果預覽" data-en="Complete Plan & Result Preview">企劃與營運完整成果預覽</h3>
+                    <p class="text-xs text-indigo-700" data-zh="下方內容將會包含您輸入的所有資料、相片及表格，點擊「匯出 PDF」即可下載檔案。" data-en="The view below captures all inputs, photo uploads, and tables ready for PDF export.">下方內容將會包含您輸入的所有資料、相片及表格，點擊「匯出 PDF」即可下載檔案。</p>
+                </div>
+                <button onclick="exportToPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span data-zh="立刻匯出 PDF 檔案" data-en="Export PDF Now">立刻匯出 PDF 檔案</span>
+                </button>
+            </div>
+
+            <!-- PDF Container Element (Target for html2pdf) -->
+            <div id="pdf-export-container" class="bg-white p-8 rounded-xl shadow border border-slate-200 text-slate-800 space-y-6 text-xs">
+                <!-- PDF Header -->
+                <div class="border-b-2 border-indigo-600 pb-4 flex justify-between items-end">
+                    <div>
+                        <h1 class="text-xl font-bold text-indigo-950" id="pdf-title">校慶園遊會班會企劃與營運成果報告</h1>
+                        <p class="text-xs text-slate-500 mt-1" id="pdf-subtitle">食品與遊戲類攤位 · 分年段班會共編紀錄</p>
+                    </div>
+                    <div class="text-right text-[11px] text-slate-500 space-y-0.5">
+                        <p><strong data-zh="班級:" data-en="Class:">班級:</strong> <span id="pdf-class-display" class="font-bold text-slate-800">未填寫</span></p>
+                        <p><strong data-zh="適用年段:" data-en="Grade:">適用年段:</strong> <span id="pdf-grade-display" class="font-bold text-indigo-700">G7 / G8</span></p>
+                        <p><strong data-zh="產出日期:" data-en="Date:">產出日期:</strong> <span id="pdf-date">2026-10-02</span></p>
+                    </div>
+                </div>
+
+                <!-- Section 1: Goals -->
+                <div class="space-y-2">
+                    <h2 class="text-sm font-bold text-indigo-900 border-l-4 border-indigo-600 pl-2">一、班級三項目標 (Class Goals)</h2>
+                    <div class="grid grid-cols-3 gap-3 text-[11px] bg-slate-50 p-3 rounded border border-slate-200">
+                        <div>
+                            <strong class="text-indigo-800 block mb-0.5">1. 學習與品質目標:</strong>
+                            <p id="pdf-goal-learning" class="text-slate-700 font-mono">未填寫</p>
+                        </div>
+                        <div>
+                            <strong class="text-emerald-800 block mb-0.5">2. 服務與營運目標:</strong>
+                            <p id="pdf-goal-service" class="text-slate-700 font-mono">未填寫</p>
+                        </div>
+                        <div>
+                            <strong class="text-teal-800 block mb-0.5">3. 環保與 SDG12 目標:</strong>
+                            <p id="pdf-goal-eco" class="text-slate-700 font-mono">未填寫</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Division -->
+                <div class="space-y-2">
+                    <h2 class="text-sm font-bold text-indigo-900 border-l-4 border-indigo-600 pl-2">二、人力分工與演練修正紀錄 (Work Division & Revisions)</h2>
+                    <div id="pdf-division-table-wrapper" class="overflow-x-auto">
+                        <!-- Cloned table rendered here -->
+                    </div>
+                </div>
+
+                <!-- Section 3: Trial Runs with Photos -->
+                <div class="space-y-2">
+                    <h2 class="text-sm font-bold text-indigo-900 border-l-4 border-indigo-600 pl-2">三、食品試作與遊戲試玩紀錄 (Trial Runs & Photos)</h2>
+                    <div id="pdf-trials-wrapper" class="space-y-3">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- Section 4: Ingredient Sources -->
+                <div class="space-y-2">
+                    <h2 class="text-sm font-bold text-indigo-900 border-l-4 border-indigo-600 pl-2">四、食材來源紀錄表與憑證照片 (Ingredient Sources)</h2>
+                    <div id="pdf-ingredients-wrapper">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- Section 5: Rehearsal & SDG -->
+                <div class="space-y-2">
+                    <h2 class="text-sm font-bold text-indigo-900 border-l-4 border-indigo-600 pl-2">五、SDG 12 永續減廢與營運演練照片 (SDG 12 & Rehearsal)</h2>
+                    <div id="pdf-sdg-wrapper" class="bg-slate-50 p-3 rounded border border-slate-200 space-y-2">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- Section 6: Settlement & Reflection -->
+                <div class="space-y-2">
+                    <h2 class="text-sm font-bold text-indigo-900 border-l-4 border-indigo-600 pl-2">六、收支結算與心得反思 (Settlement & Reflection)</h2>
+                    <div id="pdf-reflection-wrapper" class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded border border-slate-200 text-[11px]">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- Section 7: Signatures Block -->
+                <div class="space-y-2 pt-2">
+                    <h2 class="text-sm font-bold text-indigo-900 border-l-4 border-indigo-600 pl-2">七、企劃與成果審核簽章 (Signatures & Approval)</h2>
+                    <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded border border-slate-200 text-[11px]">
+                        <div class="space-y-3">
+                            <p><strong>負責同學 / 班級總召簽名：</strong></p>
+                            <p class="text-sm font-bold text-indigo-950 border-b border-slate-400 pb-1" id="pdf-sig-student">未簽名</p>
+                            <p class="text-[10px] text-slate-500">簽署日期：______ 年 ___ 月 ___ 日</p>
+                        </div>
+                        <div class="space-y-3">
+                            <p><strong>指導導師審核簽名：</strong></p>
+                            <p class="text-sm font-bold text-indigo-950 border-b border-slate-400 pb-1" id="pdf-sig-teacher">未簽名</p>
+                            <p class="text-[10px] text-slate-500">簽署日期：______ 年 ___ 月 ___ 日</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // State variables
+        let currentLang = 'zh'; // 'zh' or 'en'
+        let currentGrade = 'G7_G8';
+
+        // Initial Data Structure
+        const gradeConfigs = {
+            'G7_G8': {
+                title: '學習重點：基本分工、衛生習慣、服務禮貌與責任',
+                titleEn: 'Focus: Basic Division, Hygiene, Service Courtesy & Responsibility',
+                guidance: '用具體情境、任務卡及示範帶領',
+                guidanceEn: 'Use concrete scenarios, task cards, and teacher demonstrations',
+                outcome: '能完成任務並說明操作步驟',
+                outcomeEn: 'Complete tasks and articulate step-by-step procedures',
+                meeting1: [
+                    { time: '5 min', title: '導師說明', desc: '說明本次任務與基本規範' },
+                    { time: '10 min', title: '經驗傳承', desc: '學長姊分享三個常見失誤，學生提問' },
+                    { time: '15 min', title: '分組討論', desc: '用任務卡討論「要做什麼、誰來做」' },
+                    { time: '10 min', title: '完成計畫', desc: '完成基本分工與試作步驟' },
+                    { time: '5 min', title: '任務確認', desc: '每人說明自己的任務' }
+                ],
+                meeting2: [
+                    { time: '5 min', title: '照片分享', desc: '分享試作照片與遇到的問題' },
+                    { time: '10 min', title: '衛教示範', desc: '由有經驗教師示範正確操作與衛生重點' },
+                    { time: '15 min', title: '流程排定', desc: '將來源、保存、製作、交付排成流程圖' },
+                    { time: '10 min', title: '情境演練', desc: '演練未熟、找錯錢及餐具回收情境' },
+                    { time: '5 min', title: '確認改善', desc: '確認需要重新練習的工作，決定是否再次試作' }
+                ],
+                meeting3: [
+                    { time: '5 min', title: '展前檢查', desc: '確認人員、物品與任務' },
+                    { time: '15 min', title: '角色扮演', desc: '模擬點餐、收款、交付與回收' },
+                    { time: '10 min', title: '檢討修正', desc: '討論哪裡容易忘記或做錯' },
+                    { time: '10 min', title: '環保練習', desc: '練習餐具歸還、垃圾分類及撤場' },
+                    { time: '5 min', title: '任務簽認', desc: '每人確認當日工作' }
+                ]
+            },
+            'G10': {
+                title: '學習重點：自主規劃、成本概念、品質穩定與問題解決',
+                titleEn: 'Focus: Autonomous Planning, Cost Concepts, Quality & Problem Solving',
+                guidance: '以數據、試作結果及問題提問引導',
+                guidanceEn: 'Guide via data analysis, trial results, and targeted questioning',
+                outcome: '能根據證據修正營運方式',
+                outcomeEn: 'Revise operation strategies based on empirical evidence',
+                meeting1: [
+                    { time: '5 min', title: '目標回顧', desc: '學生回顧既有品項、價格與目標' },
+                    { time: '10 min', title: '案例分析', desc: '經驗教師以真實案例說明成本、出餐與食安問題' },
+                    { time: '15 min', title: '成本盤點', desc: '分組盤點成本、每批產量、製作時間及瓶頸' },
+                    { time: '10 min', title: '指標設計', desc: '設計試作紀錄及改善判準' },
+                    { time: '5 min', title: '目標回報', desc: '各組回報目標與期限' }
+                ],
+                meeting2: [
+                    { time: '5 min', title: '數據回報', desc: '回報每批時間、份數及成本紀錄' },
+                    { time: '10 min', title: '分析不穩定', desc: '教師協助分析不穩定的步驟' },
+                    { time: '15 min', title: '調整流程', desc: '修正配方、份量、批次與出餐流程' },
+                    { time: '10 min', title: '暫停演練', desc: '演練暫停販售、顧客說明與復查流程' },
+                    { time: '5 min', title: '二次試作', desc: '決定是否需要再次試作' }
+                ],
+                meeting3: [
+                    { time: '5 min', title: '待辦檢查', desc: '檢查待辦及準備狀態' },
+                    { time: '15 min', title: '尖峰模擬', desc: '模擬尖峰訂單、批次補貨與輪班' },
+                    { time: '10 min', title: '動態調整', desc: '根據模擬結果調整服務量與分工' },
+                    { time: '10 min', title: '減廢措施', desc: '訂定減少剩食、包材及垃圾的具體措施' },
+                    { time: '5 min', title: '流程簽認', desc: '各組簽認最終流程' }
+                ]
+            },
+            'G11': {
+                title: '學習重點：團隊領導、跨班協作、永續管理與經驗傳承',
+                titleEn: 'Focus: Team Leadership, Cross-Class Collaboration & Sustainability',
+                guidance: '由學生主持，導師協助檢視決策與責任',
+                guidanceEn: 'Student-led meetings; advisor oversees decision quality & accountability',
+                outcome: '能管理攤位，留下可供學弟妹使用的方法',
+                outcomeEn: 'Manage booth effectively and create pass-down documentation',
+                meeting1: [
+                    { time: '5 min', title: '學生主持', desc: '學生主持，提出班級營運與永續目標' },
+                    { time: '10 min', title: '資源調度', desc: '與經驗教師討論人力調度、剩食及跨班支援' },
+                    { time: '15 min', title: '風險控管', desc: '分組提出營運、風險及循環利用方案，互相檢視' },
+                    { time: '10 min', title: '跨班安排', desc: '確認各組責任、試作驗證及學弟妹支援安排' },
+                    { time: '5 min', title: '決議整理', desc: '主持人整理決議及跨班需求' }
+                ],
+                meeting2: [
+                    { time: '5 min', title: '綜合回報', desc: '回報品質、產能、耗損與人力紀錄' },
+                    { time: '10 min', title: '檢核責任', desc: '與教師檢視安全檢核點及異常處理責任' },
+                    { time: '15 min', title: '應變方案', desc: '討論尖峰供應、補貨、剩料及跨組協作方案' },
+                    { time: '10 min', title: '食安演練', desc: '演練食安異常、停業決策及人力重整' },
+                    { time: '5 min', title: '複查定案', desc: '完成修正決議與複查安排' }
+                ],
+                meeting3: [
+                    { time: '5 min', title: '開攤檢核', desc: '學生主持開攤前檢核' },
+                    { time: '15 min', title: '完整模擬', desc: '模擬完整營運、停業處理及跨組支援' },
+                    { time: '10 min', title: '同儕回饋', desc: '由同儕提出改善意見並確認責任' },
+                    { time: '10 min', title: '傳承安排', desc: '確認循環物資管理及學弟妹支援時段' },
+                    { time: '5 min', title: '永續承諾', desc: '統整營運及永續承諾' }
+                ]
+            }
+        };
+
+        // Initial Data for Tables
+        let divisionData = [
+            { category: '採購與備料', desc: '採買食材、檢查效期與運送', students: '張小明、李小華', revision: '試作後發現數量不足，改為二人分頭採買。' },
+            { category: '食品烹調製作', desc: '負責依SOP加熱並量測中心溫度', students: '王大同、陳小美', revision: '中心溫度計由1支增為2支以加速出餐。' },
+            { category: '點餐與收款', desc: '處理訂單與找零，嚴禁接觸食物', students: '林阿強', revision: '增設戴手套專人，與找錢人員嚴格分工。' },
+            { category: '食安與環保督導', desc: '檢查衛生、循環餐具與回收引導', students: '黃小芳', revision: '於攤位旁加設循環餐具歸還標示牌。' }
+        ];
+
+        let trialData = [
+            {
+                id: 1,
+                name: '古早味烤香腸 / Grilled Sausage',
+                time: '8 分鐘 / 批',
+                temp: '82 °C (超過標準75°C)',
+                yieldCost: '10份/批，單份成本 NT$25',
+                photo: '',
+                desc: '試作時外皮易焦但中心未熟，修正為先蒸後烤，確保中心溫度達標。',
+                issues: '火候過大導致局部燒焦。調整烤網高度並全程對定時器。'
+            }
+        ];
+
+        let ingredientData = [
+            { name: '豬肉香腸', brand: '黑橋牌', origin: '台灣', supplier: '全聯福利中心', storage: '冷藏 (7°C以下)', allergen: '含大豆、豬肉過敏原', photo: '' },
+            { name: '醬油膏', brand: '金蘭', origin: '台灣', supplier: '家樂福', storage: '常溫，開封後冷藏', allergen: '含大豆、小麥', photo: '' }
+        ];
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('pdf-date').innerText = new Date().toISOString().split('T')[0];
+            switchGrade('G7_G8');
+            renderDivisionTable();
+            renderTrialCards();
+            renderIngredientTable();
+        });
+
+        // Language Switcher
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            document.getElementById('lang-btn-text').innerText = currentLang === 'zh' ? 'English' : '中文';
+            
+            // Toggle all data-zh and data-en text nodes
+            document.querySelectorAll('[data-zh]').forEach(el => {
+                const text = el.getAttribute(`data-${currentLang}`);
+                if (text) el.innerText = text;
+            });
+
+            // Update placeholder attribute for inputs
+            document.querySelectorAll('textarea[placeholder]').forEach(el => {
+                if (currentLang === 'en' && !el.dataset.phZh) {
+                    el.dataset.phZh = el.placeholder;
+                    el.placeholder = "Please enter relevant details...";
+                } else if (currentLang === 'zh' && el.dataset.phZh) {
+                    el.placeholder = el.dataset.phZh;
+                }
+            });
+
+            // Re-render grade configs & tables
+            switchGrade(currentGrade);
+            renderDivisionTable();
+            renderTrialCards();
+            renderIngredientTable();
+        }
+
+        // Switch Grade Levels
+        function switchGrade(grade) {
+            currentGrade = grade;
+            const config = gradeConfigs[grade];
+            
+            document.getElementById('grade-badge').innerText = grade.replace('_', '/');
+            document.getElementById('grade-title').innerText = currentLang === 'zh' ? config.title : config.titleEn;
+            document.getElementById('grade-guidance').innerText = currentLang === 'zh' ? config.guidance : config.guidanceEn;
+            document.getElementById('grade-outcome').innerText = currentLang === 'zh' ? config.outcome : config.outcomeEn;
+
+            // Render Meeting Agendas
+            renderAgendaSteps('meeting1-agenda-steps', config.meeting1);
+            renderAgendaSteps('meeting2-agenda-steps', config.meeting2);
+            renderAgendaSteps('meeting3-agenda-steps', config.meeting3);
+
+            document.getElementById('meeting1-agenda-tag').innerText = `${grade.replace('_', '/')} 專屬流程`;
+            document.getElementById('meeting2-agenda-tag').innerText = `${grade.replace('_', '/')} 專屬流程`;
+            document.getElementById('meeting3-agenda-tag').innerText = `${grade.replace('_', '/')} 專屬流程`;
+        }
+
+        function renderAgendaSteps(containerId, steps) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = steps.map((step, idx) => `
+                <div class="bg-indigo-50/70 p-2.5 rounded-lg border border-indigo-100 flex flex-col justify-between">
+                    <div>
+                        <span class="font-bold text-indigo-800">${idx + 1}. ${step.title}</span>
+                        <p class="text-[11px] text-slate-600 mt-1">${step.desc}</p>
+                    </div>
+                    <span class="text-[10px] text-indigo-500 font-mono mt-2 text-right"><i class="fa-regular fa-clock mr-1"></i>${step.time}</span>
+                </div>
+            `).join('');
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('tab-active');
+                el.classList.add('text-slate-600');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            activeBtn.classList.add('tab-active');
+            activeBtn.classList.remove('text-slate-600');
+
+            if (tabId === 'preview') {
+                updatePDFPreview();
+            }
+        }
+
+        // Division Table Rendering
+        function renderDivisionTable() {
+            const tbody = document.getElementById('division-tbody');
+            tbody.innerHTML = divisionData.map((row, idx) => `
+                <tr>
+                    <td class="p-2"><input type="text" value="${row.category}" onchange="divisionData[${idx}].category=this.value" class="w-full p-1 border rounded text-xs font-semibold"></td>
+                    <td class="p-2"><input type="text" value="${row.desc}" onchange="divisionData[${idx}].desc=this.value" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.students}" onchange="divisionData[${idx}].students=this.value" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2 bg-amber-50/40"><input type="text" value="${row.revision}" onchange="divisionData[${idx}].revision=this.value" class="w-full p-1 border border-amber-200 rounded text-xs text-amber-900 bg-white" placeholder="填寫修正與調整"></td>
+                    <td class="p-2 text-center">
+                        <button onclick="deleteDivisionRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function addDivisionRow() {
+            divisionData.push({ category: '新任務', desc: '任務內容與職責', students: '負責學生姓名', revision: '演練後修正內容' });
+            renderDivisionTable();
+        }
+
+        function deleteDivisionRow(idx) {
+            divisionData.splice(idx, 1);
+            renderDivisionTable();
+        }
+
+        // Trial Cards & Photo Upload Logic
+        function renderTrialCards() {
+            const container = document.getElementById('trial-cards-container');
+            container.innerHTML = trialData.map((item, idx) => `
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <input type="text" value="${item.name}" onchange="trialData[${idx}].name=this.value" class="font-bold text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 text-xs w-2/3" placeholder="品項名稱 / Item Name">
+                        <button onclick="deleteTrialCard(${idx})" class="text-rose-500 hover:text-rose-700 text-xs flex items-center gap-1">
+                            <i class="fa-solid fa-trash-can"></i> 刪除紀錄
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                        <div>
+                            <label class="block font-medium text-slate-600 mb-1"><i class="fa-regular fa-clock text-indigo-500 mr-1"></i>每批耗時 / 時間</label>
+                            <input type="text" value="${item.time}" onchange="trialData[${idx}].time=this.value" class="w-full p-1.5 border rounded bg-white">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-600 mb-1"><i class="fa-solid fa-temperature-high text-rose-500 mr-1"></i>中心溫度測量</label>
+                            <input type="text" value="${item.temp}" onchange="trialData[${idx}].temp=this.value" class="w-full p-1.5 border rounded bg-white" placeholder="如: 80°C (需高於75°C)">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-600 mb-1"><i class="fa-solid fa-coins text-amber-500 mr-1"></i>每批產量與單份成本</label>
+                            <input type="text" value="${item.yieldCost}" onchange="trialData[${idx}].yieldCost=this.value" class="w-full p-1.5 border rounded bg-white">
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload + Description Field -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-200">
+                        <div class="md:col-span-1">
+                            <label class="block text-[11px] font-bold text-indigo-900 mb-1"><i class="fa-solid fa-image mr-1"></i>試作/試玩照片</label>
+                            <div id="trial-img-preview-${idx}" class="w-full h-28 bg-white border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center cursor-pointer overflow-hidden relative hover:border-indigo-500" onclick="document.getElementById('trial-img-input-${idx}').click()">
+                                ${item.photo ? `<img src="${item.photo}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-camera text-slate-300 text-xl mb-1"></i><span class="text-[10px] text-slate-400">點擊拍照 / 上傳</span>`}
+                            </div>
+                            <input type="file" id="trial-img-input-${idx}" class="hidden" accept="image/*" onchange="handleTrialPhotoUpload(event, ${idx})">
+                        </div>
+                        <div class="md:col-span-2 space-y-2">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-1"></i>照片說明 (Photo Description)</label>
+                                <textarea onchange="trialData[${idx}].desc=this.value" rows="2" class="w-full p-2 border rounded bg-white text-xs" placeholder="請填寫照片中呈現的操作細節或成品品質...">${item.desc}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-amber-800"><i class="fa-solid fa-wrench text-amber-600 mr-1"></i>發現問題與修正調整 (Revisions & Fixes)</label>
+                                <textarea onchange="trialData[${idx}].issues=this.value" rows="2" class="w-full p-2 border border-amber-200 rounded bg-amber-50/50 text-xs text-amber-900" placeholder="說明試作遇到的失敗、不穩定處與如何改進...">${item.issues}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addTrialCard() {
+            trialData.push({
+                id: Date.now(),
+                name: '新食品或遊戲品項',
+                time: '10 分鐘',
+                temp: '測量溫度',
+                yieldCost: '產量與成本',
+                photo: '',
+                desc: '請輸入照片說明',
+                issues: '請輸入發現問題與改善處'
+            });
+            renderTrialCards();
+        }
+
+        function deleteTrialCard(idx) {
+            trialData.splice(idx, 1);
+            renderTrialCards();
+        }
+
+        function handleTrialPhotoUpload(event, idx) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    trialData[idx].photo = e.target.result;
+                    renderTrialCards();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Ingredient Table Rendering & Fast Photo Upload
+        function renderIngredientTable() {
+            const tbody = document.getElementById('ingredients-tbody');
+            tbody.innerHTML = ingredientData.map((row, idx) => `
+                <tr>
+                    <td class="p-2"><input type="text" value="${row.name}" onchange="ingredientData[${idx}].name=this.value" class="w-full p-1 border rounded text-xs font-semibold"></td>
+                    <td class="p-2"><input type="text" value="${row.brand}" onchange="ingredientData[${idx}].brand=this.value" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.origin}" onchange="ingredientData[${idx}].origin=this.value" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.supplier}" onchange="ingredientData[${idx}].supplier=this.value" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.storage}" onchange="ingredientData[${idx}].storage=this.value" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.allergen}" onchange="ingredientData[${idx}].allergen=this.value" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2 bg-indigo-50/30 border-l border-indigo-100">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-12 h-12 bg-white border border-slate-300 rounded overflow-hidden flex items-center justify-center cursor-pointer" onclick="document.getElementById('ing-img-input-${idx}').click()">
+                                ${row.photo ? `<img src="${row.photo}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-camera text-slate-400 text-xs"></i>`}
+                            </div>
+                            <button onclick="document.getElementById('ing-img-input-${idx}').click()" class="text-[11px] bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-2 py-1 rounded shadow-sm">
+                                ${row.photo ? '更換照片' : '拍攝憑證'}
+                            </button>
+                            <input type="file" id="ing-img-input-${idx}" class="hidden" accept="image/*" onchange="handleIngredientPhoto(event, ${idx})">
+                        </div>
+                    </td>
+                    <td class="p-2 text-center">
+                        <button onclick="deleteIngredientRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function addIngredientRow() {
+            ingredientData.push({ name: '新食材原料', brand: '品牌名稱', origin: '原產地', supplier: '購買處', storage: '保存條件', allergen: '無 / 有過敏原', photo: '' });
+            renderIngredientTable();
+        }
+
+        function deleteIngredientRow(idx) {
+            ingredientData.splice(idx, 1);
+            renderIngredientTable();
+        }
+
+        function handleIngredientPhoto(event, idx) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    ingredientData[idx].photo = e.target.result;
+                    renderIngredientTable();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Generic Image Upload Reader
+        function handleImageUpload(event, previewId, dataId) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const dataUrl = e.target.result;
+                    document.getElementById(dataId).value = dataUrl;
+                    const preview = document.getElementById(previewId);
+                    preview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover rounded-lg">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Financial Calculation
+        function calcNetProfit() {
+            const rev = parseFloat(document.getElementById('settle-revenue').value) || 0;
+            const exp = parseFloat(document.getElementById('settle-expenses').value) || 0;
+            const net = rev - exp;
+            const netEl = document.getElementById('settle-net');
+            netEl.innerText = `NT$ ${net.toLocaleString()}`;
+            if (net >= 0) {
+                netEl.className = "text-base font-black text-emerald-700 py-1.5";
+            } else {
+                netEl.className = "text-base font-black text-rose-700 py-1.5";
+            }
+        }
+
+        // Update PDF Preview Tab
+        function updatePDFPreview() {
+            const className = document.getElementById('info-class-name').value || '未填寫班級';
+            const studentSig = document.getElementById('info-student-sig').value || '未簽名';
+            const teacherSig = document.getElementById('info-teacher-sig').value || '未簽名';
+
+            document.getElementById('pdf-class-display').innerText = className;
+            document.getElementById('pdf-sig-student').innerText = studentSig;
+            document.getElementById('pdf-sig-teacher').innerText = teacherSig;
+
+            document.getElementById('pdf-grade-display').innerText = currentGrade.replace('_', '/');
+            document.getElementById('pdf-goal-learning').innerText = document.getElementById('goal-learning').value || '未填寫';
+            document.getElementById('pdf-goal-service').innerText = document.getElementById('goal-service').value || '未填寫';
+            document.getElementById('pdf-goal-eco').innerText = document.getElementById('goal-eco').value || '未填寫';
+
+            // 1. Division Table
+            const divWrapper = document.getElementById('pdf-division-table-wrapper');
+            divWrapper.innerHTML = `
+                <table class="w-full border-collapse border border-slate-300 text-[10px]">
+                    <thead>
+                        <tr class="bg-slate-100 border-b border-slate-300">
+                            <th class="border border-slate-300 p-1.5">工作類別</th>
+                            <th class="border border-slate-300 p-1.5">職責說明</th>
+                            <th class="border border-slate-300 p-1.5">負責學生</th>
+                            <th class="border border-slate-300 p-1.5 bg-amber-50">修正與調整紀錄</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${divisionData.map(d => `
+                            <tr>
+                                <td class="border border-slate-300 p-1.5 font-bold">${d.category}</td>
+                                <td class="border border-slate-300 p-1.5">${d.desc}</td>
+                                <td class="border border-slate-300 p-1.5">${d.students}</td>
+                                <td class="border border-slate-300 p-1.5 bg-amber-50/50">${d.revision}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            // 2. Trial Cards
+            const trialsWrapper = document.getElementById('pdf-trials-wrapper');
+            trialsWrapper.innerHTML = trialData.map(t => `
+                <div class="border border-slate-200 rounded p-3 bg-slate-50 space-y-2">
+                    <div class="flex justify-between font-bold text-slate-900 border-b pb-1">
+                        <span>${t.name}</span>
+                        <span class="text-indigo-700">耗時: ${t.time} | 中心溫: ${t.temp}</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        ${t.photo ? `<img src="${t.photo}" class="w-full h-24 object-cover rounded border">` : `<div class="w-full h-24 bg-slate-200 rounded flex items-center justify-center text-slate-400">無照片</div>`}
+                        <div class="col-span-2 text-[10px] space-y-1">
+                            <p><strong>照片說明：</strong> ${t.desc}</p>
+                            <p class="text-amber-900 bg-amber-100/60 p-1 rounded"><strong>發現問題與修正：</strong> ${t.issues}</p>
+                            <p class="text-slate-500"><strong>產量與成本：</strong> ${t.yieldCost}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // 3. Ingredients Table & Photos
+            const ingWrapper = document.getElementById('pdf-ingredients-wrapper');
+            ingWrapper.innerHTML = `
+                <table class="w-full border-collapse border border-slate-300 text-[10px]">
+                    <thead>
+                        <tr class="bg-slate-100 border-b border-slate-300">
+                            <th class="border border-slate-300 p-1.5">品項名稱</th>
+                            <th class="border border-slate-300 p-1.5">原料/品牌</th>
+                            <th class="border border-slate-300 p-1.5">原產地</th>
+                            <th class="border border-slate-300 p-1.5">保存與過敏原</th>
+                            <th class="border border-slate-300 p-1.5">憑證照片</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${ingredientData.map(i => `
+                            <tr>
+                                <td class="border border-slate-300 p-1.5 font-bold">${i.name}</td>
+                                <td class="border border-slate-300 p-1.5">${i.brand} (${i.supplier})</td>
+                                <td class="border border-slate-300 p-1.5">${i.origin}</td>
+                                <td class="border border-slate-300 p-1.5">${i.storage} / ${i.allergen}</td>
+                                <td class="border border-slate-300 p-1 text-center">
+                                    ${i.photo ? `<img src="${i.photo}" class="w-10 h-10 object-cover inline-block rounded">` : '無'}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            // 4. SDG Rehearsal Section
+            const rehearsalPhoto = document.getElementById('rehearsal-photo-data').value;
+            const rehearsalDesc = document.getElementById('rehearsal-photo-desc').value || '未填寫演練說明';
+            const sdgFoodWaste = document.getElementById('sdg-food-waste').value || '未填寫';
+            const sdgTableware = document.getElementById('sdg-tableware').value || '未填寫';
+
+            document.getElementById('pdf-sdg-wrapper').innerHTML = `
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <strong class="text-emerald-800 block">1. 減少剩食措施 (SDG 12.3):</strong>
+                        <p class="text-slate-700 mt-0.5">${sdgFoodWaste}</p>
+                    </div>
+                    <div>
+                        <strong class="text-emerald-800 block">2. 免費循環餐具措施:</strong>
+                        <p class="text-slate-700 mt-0.5">${sdgTableware}</p>
+                    </div>
+                </div>
+                ${rehearsalPhoto || rehearsalDesc ? `
+                    <div class="border-t border-slate-200 pt-2 mt-2 flex items-start gap-3">
+                        ${rehearsalPhoto ? `<img src="${rehearsalPhoto}" class="w-24 h-20 object-cover rounded border">` : ''}
+                        <div class="text-[10px]">
+                            <strong class="text-indigo-900 block">營運演練照片說明：</strong>
+                            <p class="text-slate-700">${rehearsalDesc}</p>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+
+            // 5. Reflection & Settlement
+            const rev = document.getElementById('settle-revenue').value || 0;
+            const exp = document.getElementById('settle-expenses').value || 0;
+            const net = parseFloat(rev) - parseFloat(exp);
+            const leftover = document.getElementById('settle-leftover').value || '無';
+            const waste = document.getElementById('settle-waste').value || '無';
+            const reusable = document.getElementById('settle-reusable').value || '無';
+            const reflectTeam = document.getElementById('reflect-teamwork').value || '無';
+            const reflectJunior = document.getElementById('reflect-juniors').value || '無';
+
+            document.getElementById('pdf-reflection-wrapper').innerHTML = `
+                <div>
+                    <strong class="text-indigo-900 block border-b pb-0.5 mb-1">財務與物資結算：</strong>
+                    <p><strong>營業收入:</strong> NT$ ${rev} | <strong>採購成本:</strong> NT$ ${exp}</p>
+                    <p><strong>淨盈餘:</strong> <span class="font-bold text-indigo-700">NT$ ${net}</span></p>
+                    <p class="mt-1"><strong>剩食處理:</strong> ${leftover}</p>
+                    <p><strong>垃圾統計:</strong> ${waste}</p>
+                    <p><strong>可再用物資:</strong> ${reusable}</p>
+                </div>
+                <div>
+                    <strong class="text-indigo-900 block border-b pb-0.5 mb-1">學習心得與傳承：</strong>
+                    <p><strong>團隊合作收穫:</strong> ${reflectTeam}</p>
+                    <p class="mt-1"><strong>給學弟妹的建議:</strong> ${reflectJunior}</p>
+                </div>
+            `;
+        }
+
+        // Export PDF Execution Function
+        function exportToPDF() {
+            updatePDFPreview();
+            const element = document.getElementById('pdf-export-container');
+
+            const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     `School_Fair_Plan_${currentGrade}_${new Date().toISOString().split('T')[0]}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Temporary toast alert
+            showToast('正為您產生 PDF 檔案，請稍候...', 'info');
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                showToast('PDF 檔案下載成功！', 'success');
+            }).catch(err => {
+                console.error(err);
+                showToast('產生 PDF 檔案時出錯，請再試一次。', 'error');
+            });
+        }
+
+        // UI Toast Message (Replaces prohibited alert)
+        function showToast(msg, type = 'info') {
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-rose-600' : 'bg-indigo-600');
+            toast.className = `fixed bottom-5 right-5 ${bgClass} text-white px-4 py-2.5 rounded-lg shadow-lg text-xs font-semibold z-50 transition transform duration-300 translate-y-10 opacity-0 flex items-center space-x-2`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>${msg}</span>`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
