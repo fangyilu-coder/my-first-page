@@ -57,6 +57,17 @@
                         <span id="lang-btn-text">English</span>
                     </button>
 
+                    <!-- Auto-Sync Status Badge -->
+                    <div id="save-status-badge" class="hidden sm:flex items-center space-x-1.5 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 transition">
+                        <i class="fa-solid fa-cloud-arrow-up text-indigo-500" id="save-status-icon"></i>
+                        <span id="save-status-text" data-zh="雲端自動同步" data-en="Auto-Sync Ready">雲端自動同步</span>
+                    </div>
+
+                    <!-- Reset Draft Button -->
+                    <button onclick="resetFormData()" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-100 transition" title="清除重置企劃草稿" data-zh="重置" data-en="Reset">
+                        <i class="fa-solid fa-arrow-rotate-left text-xs"></i>
+                    </button>
+
                     <!-- PDF Export Action -->
                     <button onclick="exportToPDF()" class="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg font-medium text-xs shadow-md shadow-indigo-100 transition active:scale-95">
                         <i class="fa-solid fa-file-pdf"></i>
@@ -559,32 +570,43 @@
                 </div>
 
                 <!-- Section 7: Signatures Block -->
-                <div class="space-y-2 pt-2">
-                    <h2 class="text-sm font-bold text-indigo-900 border-l-4 border-indigo-600 pl-2">七、企劃與成果審核簽章 (Signatures & Approval)</h2>
-                    <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded border border-slate-200 text-[11px]">
-                        <div class="space-y-3">
-                            <p><strong>負責同學 / 班級總召簽名：</strong></p>
-                            <p class="text-sm font-bold text-indigo-950 border-b border-slate-400 pb-1" id="pdf-sig-student">未簽名</p>
-                            <p class="text-[10px] text-slate-500">簽署日期：______ 年 ___ 月 ___ 日</p>
-                        </div>
-                        <div class="space-y-3">
-                            <p><strong>指導導師審核簽名：</strong></p>
-                            <p class="text-sm font-bold text-indigo-950 border-b border-slate-400 pb-1" id="pdf-sig-teacher">未簽名</p>
-                            <p class="text-[10px] text-slate-500">簽署日期：______ 年 ___ 月 ___ 日</p>
-                        </div>
-                    </div>
+        <div class="space-y-2 pt-2">
+            <h2 class="text-sm font-bold text-indigo-900 border-l-4 border-indigo-600 pl-2">七、企劃與成果審核簽章 (Signatures & Approval)</h2>
+            <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded border border-slate-200 text-[11px]">
+                <div class="space-y-3">
+                    <p><strong>負責同學 / 班級總召簽名：</strong></p>
+                    <p class="text-sm font-bold text-indigo-950 border-b border-slate-400 pb-1" id="pdf-sig-student">未簽名</p>
+                    <p class="text-[10px] text-slate-500">簽署日期：______ 年 ___ 月 ___ 日</p>
+                </div>
+                <div class="space-y-3">
+                    <p><strong>指導導師審核簽名：</strong></p>
+                    <p class="text-sm font-bold text-indigo-950 border-b border-slate-400 pb-1" id="pdf-sig-teacher">未簽名</p>
+                    <p class="text-[10px] text-slate-500">簽署日期：______ 年 ___ 月 ___ 日</p>
                 </div>
             </div>
-        </section>
+        </div>
+    </div>
+</section>
 
-    </main>
+</main>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // State variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'fair-plc-planner';
+        let db = null;
+        let auth = null;
+        let userId = null;
+        let docRef = null;
+        let isRestoring = false;
+        let autoSaveTimeout = null;
+
         let currentLang = 'zh'; // 'zh' or 'en'
         let currentGrade = 'G7_G8';
 
-        // Initial Data Structure
         const gradeConfigs = {
             'G7_G8': {
                 title: '學習重點：基本分工、衛生習慣、服務禮貌與責任',
@@ -675,7 +697,6 @@
             }
         };
 
-        // Initial Data for Tables
         let divisionData = [
             { category: '採購與備料', desc: '採買食材、檢查效期與運送', students: '張小明、李小華', revision: '試作後發現數量不足，改為二人分頭採買。' },
             { category: '食品烹調製作', desc: '負責依SOP加熱並量測中心溫度', students: '王大同、陳小美', revision: '中心溫度計由1支增為2支以加速出餐。' },
@@ -701,27 +722,198 @@
             { name: '醬油膏', brand: '金蘭', origin: '台灣', supplier: '家樂福', storage: '常溫，開封後冷藏', allergen: '含大豆、小麥', photo: '' }
         ];
 
+        async function initFirebase() {
+            try {
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+                if (!firebaseConfig) {
+                    console.warn("Firebase config not available; running in local mode.");
+                    return;
+                }
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                let userCredential;
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    userCredential = await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    userCredential = await signInAnonymously(auth);
+                }
+                userId = userCredential.user.uid;
+
+                docRef = doc(db, 'artifacts', appId, 'users', userId, 'formData', 'plannerData');
+
+                // Real-time listener to automatically load saved draft
+                onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        restoreFormData(data);
+                        showToast('已自動恢復您上次填寫的企劃內容！', 'success');
+                        showSaveStatus('saved');
+                    }
+                }, (err) => {
+                    console.error("Firestore onSnapshot error:", err);
+                });
+
+            } catch (err) {
+                console.error("Failed to initialize Firebase persistence:", err);
+            }
+        }
+
+        function collectFormData() {
+            return {
+                className: document.getElementById('info-class-name').value || '',
+                studentSig: document.getElementById('info-student-sig').value || '',
+                teacherSig: document.getElementById('info-teacher-sig').value || '',
+                grade: currentGrade,
+                lang: currentLang,
+                goalLearning: document.getElementById('goal-learning').value || '',
+                goalService: document.getElementById('goal-service').value || '',
+                goalEco: document.getElementById('goal-eco').value || '',
+                divisionData: divisionData,
+                trialData: trialData,
+                ingredientData: ingredientData,
+                sdgFoodWaste: document.getElementById('sdg-food-waste').value || '',
+                sdgTableware: document.getElementById('sdg-tableware').value || '',
+                rehearsalPhotoData: document.getElementById('rehearsal-photo-data').value || '',
+                rehearsalPhotoDesc: document.getElementById('rehearsal-photo-desc').value || '',
+                settleRevenue: document.getElementById('settle-revenue').value || '',
+                settleExpenses: document.getElementById('settle-expenses').value || '',
+                settleLeftover: document.getElementById('settle-leftover').value || '',
+                settleWaste: document.getElementById('settle-waste').value || '',
+                settleReusable: document.getElementById('settle-reusable').value || '',
+                reflectTeamwork: document.getElementById('reflect-teamwork').value || '',
+                reflectJuniors: document.getElementById('reflect-juniors').value || '',
+                updatedAt: new Date().toISOString()
+            };
+        }
+
+        function restoreFormData(data) {
+            isRestoring = true;
+
+            if (data.className !== undefined) document.getElementById('info-class-name').value = data.className;
+            if (data.studentSig !== undefined) document.getElementById('info-student-sig').value = data.studentSig;
+            if (data.teacherSig !== undefined) document.getElementById('info-teacher-sig').value = data.teacherSig;
+
+            if (data.goalLearning !== undefined) document.getElementById('goal-learning').value = data.goalLearning;
+            if (data.goalService !== undefined) document.getElementById('goal-service').value = data.goalService;
+            if (data.goalEco !== undefined) document.getElementById('goal-eco').value = data.goalEco;
+
+            if (Array.isArray(data.divisionData)) {
+                divisionData = data.divisionData;
+                renderDivisionTable();
+            }
+            if (Array.isArray(data.trialData)) {
+                trialData = data.trialData;
+                renderTrialCards();
+            }
+            if (Array.isArray(data.ingredientData)) {
+                ingredientData = data.ingredientData;
+                renderIngredientTable();
+            }
+
+            if (data.sdgFoodWaste !== undefined) document.getElementById('sdg-food-waste').value = data.sdgFoodWaste;
+            if (data.sdgTableware !== undefined) document.getElementById('sdg-tableware').value = data.sdgTableware;
+            if (data.rehearsalPhotoData !== undefined) {
+                document.getElementById('rehearsal-photo-data').value = data.rehearsalPhotoData;
+                if (data.rehearsalPhotoData) {
+                    document.getElementById('rehearsal-photo-preview').innerHTML = `<img src="${data.rehearsalPhotoData}" class="w-full h-full object-cover rounded-lg">`;
+                }
+            }
+            if (data.rehearsalPhotoDesc !== undefined) document.getElementById('rehearsal-photo-desc').value = data.rehearsalPhotoDesc;
+
+            if (data.settleRevenue !== undefined) document.getElementById('settle-revenue').value = data.settleRevenue;
+            if (data.settleExpenses !== undefined) document.getElementById('settle-expenses').value = data.settleExpenses;
+            if (data.settleLeftover !== undefined) document.getElementById('settle-leftover').value = data.settleLeftover;
+            if (data.settleWaste !== undefined) document.getElementById('settle-waste').value = data.settleWaste;
+            if (data.settleReusable !== undefined) document.getElementById('settle-reusable').value = data.settleReusable;
+
+            if (data.reflectTeamwork !== undefined) document.getElementById('reflect-teamwork').value = data.reflectTeamwork;
+            if (data.reflectJuniors !== undefined) document.getElementById('reflect-juniors').value = data.reflectJuniors;
+
+            if (data.grade && data.grade !== currentGrade) {
+                document.getElementById('grade-select').value = data.grade;
+                switchGrade(data.grade, false);
+            }
+
+            if (data.lang && data.lang !== currentLang) {
+                toggleLanguage(false);
+            }
+
+            calcNetProfit();
+            isRestoring = false;
+        }
+
+        function triggerAutoSave() {
+            if (isRestoring || !db || !userId) return;
+            showSaveStatus('saving');
+
+            if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(async () => {
+                try {
+                    const data = collectFormData();
+                    await setDoc(docRef, data);
+                    showSaveStatus('saved');
+                } catch (err) {
+                    console.error("Auto-save failed:", err);
+                    showSaveStatus('error');
+                }
+            }, 600);
+        }
+
+        function showSaveStatus(status) {
+            const icon = document.getElementById('save-status-icon');
+            const text = document.getElementById('save-status-text');
+            if (!icon || !text) return;
+
+            if (status === 'saving') {
+                icon.className = 'fa-solid fa-spinner fa-spin text-indigo-500';
+                text.innerText = currentLang === 'zh' ? '自動同步中...' : 'Saving...';
+            } else if (status === 'saved') {
+                icon.className = 'fa-solid fa-cloud-check text-emerald-500';
+                text.innerText = currentLang === 'zh' ? '已自動儲存' : 'All Changes Saved';
+            } else if (status === 'error') {
+                icon.className = 'fa-solid fa-cloud-xmark text-rose-500';
+                text.innerText = currentLang === 'zh' ? '儲存失敗' : 'Save Error';
+            }
+        }
+
+        async function resetFormData() {
+            if (confirm("確定要重置所有填寫內容嗎？此操作將清除資料並回復預設值。")) {
+                try {
+                    if (docRef) {
+                        await deleteDoc(docRef);
+                    }
+                    location.reload();
+                } catch (e) {
+                    console.error("Reset failed:", e);
+                }
+            }
+        }
+
+        document.addEventListener('input', () => triggerAutoSave());
+        document.addEventListener('change', () => triggerAutoSave());
+
         // Initialize App on DOM Load
         window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('pdf-date').innerText = new Date().toISOString().split('T')[0];
-            switchGrade('G7_G8');
+            switchGrade('G7_G8', false);
             renderDivisionTable();
             renderTrialCards();
             renderIngredientTable();
+            initFirebase();
         });
 
         // Language Switcher
-        function toggleLanguage() {
+        function toggleLanguage(autoSave = true) {
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
             document.getElementById('lang-btn-text').innerText = currentLang === 'zh' ? 'English' : '中文';
             
-            // Toggle all data-zh and data-en text nodes
             document.querySelectorAll('[data-zh]').forEach(el => {
                 const text = el.getAttribute(`data-${currentLang}`);
                 if (text) el.innerText = text;
             });
 
-            // Update placeholder attribute for inputs
             document.querySelectorAll('textarea[placeholder]').forEach(el => {
                 if (currentLang === 'en' && !el.dataset.phZh) {
                     el.dataset.phZh = el.placeholder;
@@ -731,15 +923,16 @@
                 }
             });
 
-            // Re-render grade configs & tables
-            switchGrade(currentGrade);
+            switchGrade(currentGrade, false);
             renderDivisionTable();
             renderTrialCards();
             renderIngredientTable();
+
+            if (autoSave) triggerAutoSave();
         }
 
         // Switch Grade Levels
-        function switchGrade(grade) {
+        function switchGrade(grade, autoSave = true) {
             currentGrade = grade;
             const config = gradeConfigs[grade];
             
@@ -748,7 +941,6 @@
             document.getElementById('grade-guidance').innerText = currentLang === 'zh' ? config.guidance : config.guidanceEn;
             document.getElementById('grade-outcome').innerText = currentLang === 'zh' ? config.outcome : config.outcomeEn;
 
-            // Render Meeting Agendas
             renderAgendaSteps('meeting1-agenda-steps', config.meeting1);
             renderAgendaSteps('meeting2-agenda-steps', config.meeting2);
             renderAgendaSteps('meeting3-agenda-steps', config.meeting3);
@@ -756,6 +948,8 @@
             document.getElementById('meeting1-agenda-tag').innerText = `${grade.replace('_', '/')} 專屬流程`;
             document.getElementById('meeting2-agenda-tag').innerText = `${grade.replace('_', '/')} 專屬流程`;
             document.getElementById('meeting3-agenda-tag').innerText = `${grade.replace('_', '/')} 專屬流程`;
+
+            if (autoSave) triggerAutoSave();
         }
 
         function renderAgendaSteps(containerId, steps) {
@@ -789,15 +983,14 @@
             }
         }
 
-        // Division Table Rendering
         function renderDivisionTable() {
             const tbody = document.getElementById('division-tbody');
             tbody.innerHTML = divisionData.map((row, idx) => `
                 <tr>
-                    <td class="p-2"><input type="text" value="${row.category}" onchange="divisionData[${idx}].category=this.value" class="w-full p-1 border rounded text-xs font-semibold"></td>
-                    <td class="p-2"><input type="text" value="${row.desc}" onchange="divisionData[${idx}].desc=this.value" class="w-full p-1 border rounded text-xs"></td>
-                    <td class="p-2"><input type="text" value="${row.students}" onchange="divisionData[${idx}].students=this.value" class="w-full p-1 border rounded text-xs"></td>
-                    <td class="p-2 bg-amber-50/40"><input type="text" value="${row.revision}" onchange="divisionData[${idx}].revision=this.value" class="w-full p-1 border border-amber-200 rounded text-xs text-amber-900 bg-white" placeholder="填寫修正與調整"></td>
+                    <td class="p-2"><input type="text" value="${row.category}" onchange="divisionData[${idx}].category=this.value; triggerAutoSave();" class="w-full p-1 border rounded text-xs font-semibold"></td>
+                    <td class="p-2"><input type="text" value="${row.desc}" onchange="divisionData[${idx}].desc=this.value; triggerAutoSave();" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.students}" onchange="divisionData[${idx}].students=this.value; triggerAutoSave();" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2 bg-amber-50/40"><input type="text" value="${row.revision}" onchange="divisionData[${idx}].revision=this.value; triggerAutoSave();" class="w-full p-1 border border-amber-200 rounded text-xs text-amber-900 bg-white" placeholder="填寫修正與調整"></td>
                     <td class="p-2 text-center">
                         <button onclick="deleteDivisionRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash-can"></i></button>
                     </td>
@@ -808,20 +1001,21 @@
         function addDivisionRow() {
             divisionData.push({ category: '新任務', desc: '任務內容與職責', students: '負責學生姓名', revision: '演練後修正內容' });
             renderDivisionTable();
+            triggerAutoSave();
         }
 
         function deleteDivisionRow(idx) {
             divisionData.splice(idx, 1);
             renderDivisionTable();
+            triggerAutoSave();
         }
 
-        // Trial Cards & Photo Upload Logic
         function renderTrialCards() {
             const container = document.getElementById('trial-cards-container');
             container.innerHTML = trialData.map((item, idx) => `
                 <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                     <div class="flex justify-between items-center border-b border-slate-200 pb-2">
-                        <input type="text" value="${item.name}" onchange="trialData[${idx}].name=this.value" class="font-bold text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 text-xs w-2/3" placeholder="品項名稱 / Item Name">
+                        <input type="text" value="${item.name}" onchange="trialData[${idx}].name=this.value; triggerAutoSave();" class="font-bold text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 text-xs w-2/3" placeholder="品項名稱 / Item Name">
                         <button onclick="deleteTrialCard(${idx})" class="text-rose-500 hover:text-rose-700 text-xs flex items-center gap-1">
                             <i class="fa-solid fa-trash-can"></i> 刪除紀錄
                         </button>
@@ -830,19 +1024,18 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                         <div>
                             <label class="block font-medium text-slate-600 mb-1"><i class="fa-regular fa-clock text-indigo-500 mr-1"></i>每批耗時 / 時間</label>
-                            <input type="text" value="${item.time}" onchange="trialData[${idx}].time=this.value" class="w-full p-1.5 border rounded bg-white">
+                            <input type="text" value="${item.time}" onchange="trialData[${idx}].time=this.value; triggerAutoSave();" class="w-full p-1.5 border rounded bg-white">
                         </div>
                         <div>
                             <label class="block font-medium text-slate-600 mb-1"><i class="fa-solid fa-temperature-high text-rose-500 mr-1"></i>中心溫度測量</label>
-                            <input type="text" value="${item.temp}" onchange="trialData[${idx}].temp=this.value" class="w-full p-1.5 border rounded bg-white" placeholder="如: 80°C (需高於75°C)">
+                            <input type="text" value="${item.temp}" onchange="trialData[${idx}].temp=this.value; triggerAutoSave();" class="w-full p-1.5 border rounded bg-white" placeholder="如: 80°C (需高於75°C)">
                         </div>
                         <div>
                             <label class="block font-medium text-slate-600 mb-1"><i class="fa-solid fa-coins text-amber-500 mr-1"></i>每批產量與單份成本</label>
-                            <input type="text" value="${item.yieldCost}" onchange="trialData[${idx}].yieldCost=this.value" class="w-full p-1.5 border rounded bg-white">
+                            <input type="text" value="${item.yieldCost}" onchange="trialData[${idx}].yieldCost=this.value; triggerAutoSave();" class="w-full p-1.5 border rounded bg-white">
                         </div>
                     </div>
 
-                    <!-- Photo Upload + Description Field -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-200">
                         <div class="md:col-span-1">
                             <label class="block text-[11px] font-bold text-indigo-900 mb-1"><i class="fa-solid fa-image mr-1"></i>試作/試玩照片</label>
@@ -854,11 +1047,11 @@
                         <div class="md:col-span-2 space-y-2">
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-1"></i>照片說明 (Photo Description)</label>
-                                <textarea onchange="trialData[${idx}].desc=this.value" rows="2" class="w-full p-2 border rounded bg-white text-xs" placeholder="請填寫照片中呈現的操作細節或成品品質...">${item.desc}</textarea>
+                                <textarea onchange="trialData[${idx}].desc=this.value; triggerAutoSave();" rows="2" class="w-full p-2 border rounded bg-white text-xs" placeholder="請填寫照片中呈現的操作細節或成品品質...">${item.desc}</textarea>
                             </div>
                             <div>
                                 <label class="block text-[11px] font-bold text-amber-800"><i class="fa-solid fa-wrench text-amber-600 mr-1"></i>發現問題與修正調整 (Revisions & Fixes)</label>
-                                <textarea onchange="trialData[${idx}].issues=this.value" rows="2" class="w-full p-2 border border-amber-200 rounded bg-amber-50/50 text-xs text-amber-900" placeholder="說明試作遇到的失敗、不穩定處與如何改進...">${item.issues}</textarea>
+                                <textarea onchange="trialData[${idx}].issues=this.value; triggerAutoSave();" rows="2" class="w-full p-2 border border-amber-200 rounded bg-amber-50/50 text-xs text-amber-900" placeholder="說明試作遇到的失敗、不穩定處與如何改進...">${item.issues}</textarea>
                             </div>
                         </div>
                     </div>
@@ -878,11 +1071,13 @@
                 issues: '請輸入發現問題與改善處'
             });
             renderTrialCards();
+            triggerAutoSave();
         }
 
         function deleteTrialCard(idx) {
             trialData.splice(idx, 1);
             renderTrialCards();
+            triggerAutoSave();
         }
 
         function handleTrialPhotoUpload(event, idx) {
@@ -892,22 +1087,22 @@
                 reader.onload = function(e) {
                     trialData[idx].photo = e.target.result;
                     renderTrialCards();
+                    triggerAutoSave();
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        // Ingredient Table Rendering & Fast Photo Upload
         function renderIngredientTable() {
             const tbody = document.getElementById('ingredients-tbody');
             tbody.innerHTML = ingredientData.map((row, idx) => `
                 <tr>
-                    <td class="p-2"><input type="text" value="${row.name}" onchange="ingredientData[${idx}].name=this.value" class="w-full p-1 border rounded text-xs font-semibold"></td>
-                    <td class="p-2"><input type="text" value="${row.brand}" onchange="ingredientData[${idx}].brand=this.value" class="w-full p-1 border rounded text-xs"></td>
-                    <td class="p-2"><input type="text" value="${row.origin}" onchange="ingredientData[${idx}].origin=this.value" class="w-full p-1 border rounded text-xs"></td>
-                    <td class="p-2"><input type="text" value="${row.supplier}" onchange="ingredientData[${idx}].supplier=this.value" class="w-full p-1 border rounded text-xs"></td>
-                    <td class="p-2"><input type="text" value="${row.storage}" onchange="ingredientData[${idx}].storage=this.value" class="w-full p-1 border rounded text-xs"></td>
-                    <td class="p-2"><input type="text" value="${row.allergen}" onchange="ingredientData[${idx}].allergen=this.value" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.name}" onchange="ingredientData[${idx}].name=this.value; triggerAutoSave();" class="w-full p-1 border rounded text-xs font-semibold"></td>
+                    <td class="p-2"><input type="text" value="${row.brand}" onchange="ingredientData[${idx}].brand=this.value; triggerAutoSave();" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.origin}" onchange="ingredientData[${idx}].origin=this.value; triggerAutoSave();" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.supplier}" onchange="ingredientData[${idx}].supplier=this.value; triggerAutoSave();" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.storage}" onchange="ingredientData[${idx}].storage=this.value; triggerAutoSave();" class="w-full p-1 border rounded text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.allergen}" onchange="ingredientData[${idx}].allergen=this.value; triggerAutoSave();" class="w-full p-1 border rounded text-xs"></td>
                     <td class="p-2 bg-indigo-50/30 border-l border-indigo-100">
                         <div class="flex items-center space-x-2">
                             <div class="w-12 h-12 bg-white border border-slate-300 rounded overflow-hidden flex items-center justify-center cursor-pointer" onclick="document.getElementById('ing-img-input-${idx}').click()">
@@ -929,11 +1124,13 @@
         function addIngredientRow() {
             ingredientData.push({ name: '新食材原料', brand: '品牌名稱', origin: '原產地', supplier: '購買處', storage: '保存條件', allergen: '無 / 有過敏原', photo: '' });
             renderIngredientTable();
+            triggerAutoSave();
         }
 
         function deleteIngredientRow(idx) {
             ingredientData.splice(idx, 1);
             renderIngredientTable();
+            triggerAutoSave();
         }
 
         function handleIngredientPhoto(event, idx) {
@@ -943,12 +1140,12 @@
                 reader.onload = function(e) {
                     ingredientData[idx].photo = e.target.result;
                     renderIngredientTable();
+                    triggerAutoSave();
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        // Generic Image Upload Reader
         function handleImageUpload(event, previewId, dataId) {
             const file = event.target.files[0];
             if (file) {
@@ -958,12 +1155,12 @@
                     document.getElementById(dataId).value = dataUrl;
                     const preview = document.getElementById(previewId);
                     preview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover rounded-lg">`;
+                    triggerAutoSave();
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        // Financial Calculation
         function calcNetProfit() {
             const rev = parseFloat(document.getElementById('settle-revenue').value) || 0;
             const exp = parseFloat(document.getElementById('settle-expenses').value) || 0;
@@ -977,7 +1174,6 @@
             }
         }
 
-        // Update PDF Preview Tab
         function updatePDFPreview() {
             const className = document.getElementById('info-class-name').value || '未填寫班級';
             const studentSig = document.getElementById('info-student-sig').value || '未簽名';
@@ -992,7 +1188,6 @@
             document.getElementById('pdf-goal-service').innerText = document.getElementById('goal-service').value || '未填寫';
             document.getElementById('pdf-goal-eco').innerText = document.getElementById('goal-eco').value || '未填寫';
 
-            // 1. Division Table
             const divWrapper = document.getElementById('pdf-division-table-wrapper');
             divWrapper.innerHTML = `
                 <table class="w-full border-collapse border border-slate-300 text-[10px]">
@@ -1017,7 +1212,6 @@
                 </table>
             `;
 
-            // 2. Trial Cards
             const trialsWrapper = document.getElementById('pdf-trials-wrapper');
             trialsWrapper.innerHTML = trialData.map(t => `
                 <div class="border border-slate-200 rounded p-3 bg-slate-50 space-y-2">
@@ -1036,7 +1230,6 @@
                 </div>
             `).join('');
 
-            // 3. Ingredients Table & Photos
             const ingWrapper = document.getElementById('pdf-ingredients-wrapper');
             ingWrapper.innerHTML = `
                 <table class="w-full border-collapse border border-slate-300 text-[10px]">
@@ -1065,7 +1258,6 @@
                 </table>
             `;
 
-            // 4. SDG Rehearsal Section
             const rehearsalPhoto = document.getElementById('rehearsal-photo-data').value;
             const rehearsalDesc = document.getElementById('rehearsal-photo-desc').value || '未填寫演練說明';
             const sdgFoodWaste = document.getElementById('sdg-food-waste').value || '未填寫';
@@ -1093,7 +1285,6 @@
                 ` : ''}
             `;
 
-            // 5. Reflection & Settlement
             const rev = document.getElementById('settle-revenue').value || 0;
             const exp = document.getElementById('settle-expenses').value || 0;
             const net = parseFloat(rev) - parseFloat(exp);
@@ -1120,7 +1311,6 @@
             `;
         }
 
-        // Export PDF Execution Function
         function exportToPDF() {
             updatePDFPreview();
             const element = document.getElementById('pdf-export-container');
@@ -1133,7 +1323,6 @@
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            // Temporary toast alert
             showToast('正為您產生 PDF 檔案，請稍候...', 'info');
 
             html2pdf().set(opt).from(element).save().then(() => {
@@ -1144,7 +1333,6 @@
             });
         }
 
-        // UI Toast Message (Replaces prohibited alert)
         function showToast(msg, type = 'info') {
             const toast = document.createElement('div');
             const bgClass = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-rose-600' : 'bg-indigo-600');
@@ -1161,6 +1349,24 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
+
+        // Export functions to global scope for HTML event handlers
+        window.toggleLanguage = toggleLanguage;
+        window.switchGrade = switchGrade;
+        window.switchTab = switchTab;
+        window.exportToPDF = exportToPDF;
+        window.addDivisionRow = addDivisionRow;
+        window.deleteDivisionRow = deleteDivisionRow;
+        window.addTrialCard = addTrialCard;
+        window.deleteTrialCard = deleteTrialCard;
+        window.handleTrialPhotoUpload = handleTrialPhotoUpload;
+        window.addIngredientRow = addIngredientRow;
+        window.deleteIngredientRow = deleteIngredientRow;
+        window.handleIngredientPhoto = handleIngredientPhoto;
+        window.handleImageUpload = handleImageUpload;
+        window.calcNetProfit = calcNetProfit;
+        window.resetFormData = resetFormData;
+        window.triggerAutoSave = triggerAutoSave;
     </script>
 </body>
 </html>
