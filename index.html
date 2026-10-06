@@ -597,6 +597,7 @@
 
         // State variables
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'fair-plc-planner';
+        const LOCAL_STORAGE_KEY = 'fair_plc_planner_draft_v1';
         let db = null;
         let auth = null;
         let userId = null;
@@ -607,120 +608,143 @@
         let currentLang = 'zh'; // 'zh' or 'en'
         let currentGrade = 'G7_G8';
 
+        // Grade-specific Configurations
         const gradeConfigs = {
-            'G7_G8': {
-                title: '學習重點：基本分工、衛生習慣、服務禮貌與責任',
-                titleEn: 'Focus: Basic Division, Hygiene, Service Courtesy & Responsibility',
-                guidance: '用具體情境、任務卡及示範帶領',
-                guidanceEn: 'Use concrete scenarios, task cards, and teacher demonstrations',
-                outcome: '能完成任務並說明操作步驟',
-                outcomeEn: 'Complete tasks and articulate step-by-step procedures',
+            G7_G8: {
+                title: "學習重點：基本分工、衛生習慣與服務禮貌",
+                titleEn: "Focus: Basic Division of Labor, Food Hygiene & Service Etiquette",
+                guidance: "具體情境、任務卡及示範帶領",
+                guidanceEn: "Specific scenarios, task cards & teacher demonstrations",
+                outcome: "能完成任務並說明操作步驟",
+                outcomeEn: "Complete tasks and articulate operational steps",
                 meeting1: [
-                    { time: '5 min', title: '導師說明', desc: '說明本次任務與基本規範' },
-                    { time: '10 min', title: '經驗傳承', desc: '學長姊分享三個常見失誤，學生提問' },
-                    { time: '15 min', title: '分組討論', desc: '用任務卡討論「要做什麼、誰來做」' },
-                    { time: '10 min', title: '完成計畫', desc: '完成基本分工與試作步驟' },
-                    { time: '5 min', title: '任務確認', desc: '每人說明自己的任務' }
+                    { title: "目標建立", desc: "確立攤位主題與學習/環保目標", time: "10 mins" },
+                    { title: "角色分工", desc: "分配採購、製作、服務與清潔人員", time: "10 mins" },
+                    { title: "學長姊經驗", desc: "回顧往年常見問題與成功經驗", time: "10 mins" },
+                    { title: "初步規劃", desc: "填寫人力分工表與預算規劃", time: "10 mins" },
+                    { title: "總結確認", desc: "導師回饋與確認下次班會任務", time: "5 mins" }
                 ],
                 meeting2: [
-                    { time: '5 min', title: '照片分享', desc: '分享試作照片與遇到的問題' },
-                    { time: '10 min', title: '衛教示範', desc: '由有經驗教師示範正確操作與衛生重點' },
-                    { time: '15 min', title: '流程排定', desc: '將來源、保存、製作、交付排成流程圖' },
-                    { time: '10 min', title: '情境演練', desc: '演練未熟、找錯錢及餐具回收情境' },
-                    { time: '5 min', title: '確認改善', desc: '確認需要重新練習的工作，決定是否再次試作' }
+                    { title: "試作準備", desc: "檢查食材衛生與安全防護措施", time: "10 mins" },
+                    { title: "食品/遊戲試作", desc: "進行現場試作與時間溫度量測", time: "15 mins" },
+                    { title: "品質檢討", desc: "檢討產能、口味、耗損與成本", time: "15 mins" },
+                    { title: "標準作業確認", desc: "修正製作流程與衛生警示", time: "5 mins" }
                 ],
                 meeting3: [
-                    { time: '5 min', title: '展前檢查', desc: '確認人員、物品與任務' },
-                    { time: '15 min', title: '角色扮演', desc: '模擬點餐、收款、交付與回收' },
-                    { time: '10 min', title: '檢討修正', desc: '討論哪裡容易忘記或做錯' },
-                    { time: '10 min', title: '環保練習', desc: '練習餐具歸還、垃圾分類及撤場' },
-                    { time: '5 min', title: '任務簽認', desc: '每人確認當日工作' }
+                    { title: "場地佈置演練", desc: "模擬攤位動線與環保回收站設置", time: "10 mins" },
+                    { title: "服務流程模擬", desc: "點餐、收款與循環餐具借還實演", time: "15 mins" },
+                    { title: "緊急應變演練", desc: "食安暫停 SOP 與人流引導練習", time: "10 mins" },
+                    { title: "SDG 減廢宣誓", desc: "確認減廢目標與道具準備", time: "5 mins" },
+                    { title: "行前總叮嚀", desc: "活動當天注意事項與導師總結", time: "5 mins" }
                 ]
             },
-            'G10': {
-                title: '學習重點：自主規劃、成本概念、品質穩定與問題解決',
-                titleEn: 'Focus: Autonomous Planning, Cost Concepts, Quality & Problem Solving',
-                guidance: '以數據、試作結果及問題提問引導',
-                guidanceEn: 'Guide via data analysis, trial results, and targeted questioning',
-                outcome: '能根據證據修正營運方式',
-                outcomeEn: 'Revise operation strategies based on empirical evidence',
+            G10: {
+                title: "學習重點：自主規劃、成本效益與品質控管",
+                titleEn: "Focus: Autonomous Planning, Cost-Benefit & Quality Control",
+                guidance: "重點引導、方向確認與風險評估",
+                guidanceEn: "Key guidance, direction confirmation & risk assessment",
+                outcome: "能分析成本效益並進行流程優化",
+                outcomeEn: "Analyze cost-effectiveness and optimize processes",
                 meeting1: [
-                    { time: '5 min', title: '目標回顧', desc: '學生回顧既有品項、價格與目標' },
-                    { time: '10 min', title: '案例分析', desc: '經驗教師以真實案例說明成本、出餐與食安問題' },
-                    { time: '15 min', title: '成本盤點', desc: '分組盤點成本、每批產量、製作時間及瓶頸' },
-                    { time: '10 min', title: '指標設計', desc: '設計試作紀錄及改善判準' },
-                    { time: '5 min', title: '目標回報', desc: '各組回報目標與期限' }
+                    { title: "市場與成本定位", desc: "評估產品價值與班級財務預算", time: "10 mins" },
+                    { title: "自主組織分工", desc: "推選各組組長與營運專案負責人", time: "10 mins" },
+                    { title: "營運企劃討論", desc: "擬定食材採購與永續減廢計畫", time: "10 mins" },
+                    { title: "目標量化設定", desc: "設定營業額、滿意度與減廢指標", time: "10 mins" },
+                    { title: "企劃確認", desc: "導師評估可行性與風險提示", time: "5 mins" }
                 ],
                 meeting2: [
-                    { time: '5 min', title: '數據回報', desc: '回報每批時間、份數及成本紀錄' },
-                    { time: '10 min', title: '分析不穩定', desc: '教師協助分析不穩定的步驟' },
-                    { time: '15 min', title: '調整流程', desc: '修正配方、份量、批次與出餐流程' },
-                    { time: '10 min', title: '暫停演練', desc: '演練暫停販售、顧客說明與復查流程' },
-                    { time: '5 min', title: '二次試作', desc: '決定是否需要再次試作' }
+                    { title: "標準化試作", desc: "實測 SOP 產能與成本控管", time: "15 mins" },
+                    { title: "品質與食安檢驗", desc: "測量中心溫度與品管指標", time: "15 mins" },
+                    { title: "數據分析與修正", desc: "依試作數據調整售價與份量", time: "10 mins" },
+                    { title: "採購清單定案", desc: "確認最終食材與道具採購量", time: "5 mins" }
                 ],
                 meeting3: [
-                    { time: '5 min', title: '待辦檢查', desc: '檢查待辦及準備狀態' },
-                    { time: '15 min', title: '尖峰模擬', desc: '模擬尖峰訂單、批次補貨與輪班' },
-                    { time: '10 min', title: '動態調整', desc: '根據模擬結果調整服務量與分工' },
-                    { time: '10 min', title: '減廢措施', desc: '訂定減少剩食、包材及垃圾的具體措施' },
-                    { time: '5 min', title: '流程簽認', desc: '各組簽認最終流程' }
+                    { title: "動線優化測試", desc: "模擬高峰期人流與出餐效率", time: "15 mins" },
+                    { title: "食安與財務演練", desc: "演練收支管理與食安暫停 SOP", time: "15 mins" },
+                    { title: "SDG12 行動落實", desc: "循環餐具推廣與剩食預防演練", time: "10 mins" },
+                    { title: "營運行前會議", desc: "最後設備檢查與人員提點", time: "5 mins" },
+                    { title: "總結備戰", desc: "確認責任分工與備料時程", time: "5 mins" }
                 ]
             },
-            'G11': {
-                title: '學習重點：團隊領導、跨班協作、永續管理與經驗傳承',
-                titleEn: 'Focus: Team Leadership, Cross-Class Collaboration & Sustainability',
-                guidance: '由學生主持，導師協助檢視決策與責任',
-                guidanceEn: 'Student-led meetings; advisor oversees decision quality & accountability',
-                outcome: '能管理攤位，留下可供學弟妹使用的方法',
-                outcomeEn: 'Manage booth effectively and create pass-down documentation',
+            G11: {
+                title: "學習重點：團隊領導、跨班協作與創新永續",
+                titleEn: "Focus: Team Leadership, Cross-Class Collaboration & Innovative Sustainability",
+                guidance: "顧問式諮詢與資源整合支援",
+                guidanceEn: "Consultative advice and resource integration support",
+                outcome: "能具備領導力、跨界協調與品牌行銷能耐",
+                outcomeEn: "Demonstrate leadership, cross-class coordination & marketing skills",
                 meeting1: [
-                    { time: '5 min', title: '學生主持', desc: '學生主持，提出班級營運與永續目標' },
-                    { time: '10 min', title: '資源調度', desc: '與經驗教師討論人力調度、剩食及跨班支援' },
-                    { time: '15 min', title: '風險控管', desc: '分組提出營運、風險及循環利用方案，互相檢視' },
-                    { time: '10 min', title: '跨班安排', desc: '確認各組責任、試作驗證及學弟妹支援安排' },
-                    { time: '5 min', title: '決議整理', desc: '主持人整理決議及跨班需求' }
+                    { title: "品牌與行銷策略", desc: "打造獨特攤位品牌與永續亮點", time: "10 mins" },
+                    { title: "跨班級/跨組協作", desc: "協調硬體設備與共享資源", time: "10 mins" },
+                    { title: "專案時程與風險管理", desc: "制定 Gantt 圖與風險應變方案", time: "10 mins" },
+                    { title: "永續創新討論", desc: "規劃零廢棄與循環經濟新點子", time: "10 mins" },
+                    { title: "顧問諮詢", desc: "與指導老師進行策略評估", time: "5 mins" }
                 ],
                 meeting2: [
-                    { time: '5 min', title: '綜合回報', desc: '回報品質、產能、耗損與人力紀錄' },
-                    { time: '10 min', title: '檢核責任', desc: '與教師檢視安全檢核點及異常處理責任' },
-                    { time: '15 min', title: '應變方案', desc: '討論尖峰供應、補貨、剩料及跨組協作方案' },
-                    { time: '10 min', title: '食安演練', desc: '演練食安異常、停業決策及人力重整' },
-                    { time: '5 min', title: '複查定案', desc: '完成修正決議與複查安排' }
+                    { title: "創新產品試作", desc: "測試高效率產能與特色品質", time: "15 mins" },
+                    { title: "成本收益敏感度測試", desc: "模擬各種銷量情境之損益", time: "15 mins" },
+                    { title: "供應鏈與食安複查", desc: "檢視廠商憑證與過敏原標示", time: "10 mins" },
+                    { title: "流程優化與決策", desc: "依據測試數據調整最終策略", time: "5 mins" }
                 ],
                 meeting3: [
-                    { time: '5 min', title: '開攤檢核', desc: '學生主持開攤前檢核' },
-                    { time: '15 min', title: '完整模擬', desc: '模擬完整營運、停業處理及跨組支援' },
-                    { time: '10 min', title: '同儕回饋', desc: '由同儕提出改善意見並確認責任' },
-                    { time: '10 min', title: '傳承安排', desc: '確認循環物資管理及學弟妹支援時段' },
-                    { time: '5 min', title: '永續承諾', desc: '統整營運及永續承諾' }
+                    { title: "全流程壓力測試", desc: "高強度模擬尖峰時段營運狀況", time: "15 mins" },
+                    { title: "跨團隊協調演練", desc: "測試緊急應變與人力支援調度", time: "15 mins" },
+                    { title: "SDG12 效益評估", desc: "驗證減廢流程與循環餐具系統", time: "10 mins" },
+                    { title: "品牌宣傳最後衝刺", desc: "確認線上與現場宣傳文案", time: "5 mins" },
+                    { title: "導師顧問總結", desc: "給予團隊領導力的最終提醒", time: "5 mins" }
                 ]
             }
         };
 
+        // Initial Form Data Arrays
         let divisionData = [
-            { category: '採購與備料', desc: '採買食材、檢查效期與運送', students: '張小明、李小華', revision: '試作後發現數量不足，改為二人分頭採買。' },
-            { category: '食品烹調製作', desc: '負責依SOP加熱並量測中心溫度', students: '王大同、陳小美', revision: '中心溫度計由1支增為2支以加速出餐。' },
-            { category: '點餐與收款', desc: '處理訂單與找零，嚴禁接觸食物', students: '林阿強', revision: '增設戴手套專人，與找錢人員嚴格分工。' },
-            { category: '食安與環保督導', desc: '檢查衛生、循環餐具與回收引導', students: '黃小芳', revision: '於攤位旁加設循環餐具歸還標示牌。' }
+            { category: '採購組', desc: '負責比價、食材採購與單據保管', students: '王小明、李小華', revision: '無調整' },
+            { category: '製作組', desc: '負責現場餐點製作與品質控制', students: '張小美、陳大天', revision: '增加1人協助備料' },
+            { category: '服務組', desc: '負責點餐、收銀與接待顧客', students: '林小東', revision: '無調整' },
+            { category: '清潔與環保組', desc: '負責循環餐具回收與攤位衛生', students: '周小花', revision: '高峰期支援收銀' }
         ];
 
         let trialData = [
             {
                 id: 1,
-                name: '古早味烤香腸 / Grilled Sausage',
-                time: '8 分鐘 / 批',
-                temp: '82 °C (超過標準75°C)',
-                yieldCost: '10份/批，單份成本 NT$25',
+                name: '手作香腸炒米粉',
+                time: '15 分鐘 / 批',
+                temp: '85°C (合格)',
+                yieldCost: '每批 10 份，單份成本 NT$ 25',
                 photo: '',
-                desc: '試作時外皮易焦但中心未熟，修正為先蒸後烤，確保中心溫度達標。',
-                issues: '火候過大導致局部燒焦。調整烤網高度並全程對定時器。'
+                desc: '試作過程火力控制良好，香氣十足',
+                issues: '米粉較易黏鍋，已決定改用不沾鍋並增加微量油'
             }
         ];
 
         let ingredientData = [
-            { name: '豬肉香腸', brand: '黑橋牌', origin: '台灣', supplier: '全聯福利中心', storage: '冷藏 (7°C以下)', allergen: '含大豆、豬肉過敏原', photo: '' },
-            { name: '醬油膏', brand: '金蘭', origin: '台灣', supplier: '家樂福', storage: '常溫，開封後冷藏', allergen: '含大豆、小麥', photo: '' }
+            { name: '優質豬肉絲', brand: '台畜', origin: '台灣', supplier: '全聯福利中心', storage: '冷藏 4°C 以下', allergen: '無', photo: '' },
+            { name: '純米米粉', brand: '虎牌', origin: '台灣', supplier: '家樂福', storage: '常溫乾燥處', allergen: '無', photo: '' }
         ];
+
+        function saveToLocalStorage(data) {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+            } catch (e) {
+                console.warn("localStorage save failed:", e);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    restoreFormData(data);
+                    showToast('已為您自動載入上次填寫的企劃草稿！', 'success');
+                    showSaveStatus('saved');
+                    return true;
+                }
+            } catch (e) {
+                console.warn("localStorage load failed:", e);
+            }
+            return false;
+        }
 
         async function initFirebase() {
             try {
@@ -743,12 +767,13 @@
 
                 docRef = doc(db, 'artifacts', appId, 'users', userId, 'formData', 'plannerData');
 
-                // Real-time listener to automatically load saved draft
+                // Real-time listener to automatically load saved draft from cloud
                 onSnapshot(docRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         restoreFormData(data);
-                        showToast('已自動恢復您上次填寫的企劃內容！', 'success');
+                        saveToLocalStorage(data);
+                        showToast('已自動同步最新企劃內容！', 'success');
                         showSaveStatus('saved');
                     }
                 }, (err) => {
@@ -845,14 +870,18 @@
         }
 
         function triggerAutoSave() {
-            if (isRestoring || !db || !userId) return;
+            if (isRestoring) return;
             showSaveStatus('saving');
 
             if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
             autoSaveTimeout = setTimeout(async () => {
                 try {
                     const data = collectFormData();
-                    await setDoc(docRef, data);
+                    saveToLocalStorage(data);
+
+                    if (db && userId && docRef) {
+                        await setDoc(docRef, data);
+                    }
                     showSaveStatus('saved');
                 } catch (err) {
                     console.error("Auto-save failed:", err);
@@ -881,6 +910,7 @@
         async function resetFormData() {
             if (confirm("確定要重置所有填寫內容嗎？此操作將清除資料並回復預設值。")) {
                 try {
+                    localStorage.removeItem(LOCAL_STORAGE_KEY);
                     if (docRef) {
                         await deleteDoc(docRef);
                     }
@@ -901,6 +931,7 @@
             renderDivisionTable();
             renderTrialCards();
             renderIngredientTable();
+            loadFromLocalStorage(); // 秒載本地歷史紀錄
             initFirebase();
         });
 
